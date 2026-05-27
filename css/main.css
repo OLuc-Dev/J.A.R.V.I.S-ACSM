@@ -1,0 +1,760 @@
+/* ─── Variables ──────────────────────────────────────────────── */
+:root {
+  --bg:        #040404;
+  --s1:        #0a0a0a;
+  --s2:        #121212;
+  --s3:        #1c1c1c;
+  --border:    rgba(255,255,255,0.05);
+  --border-hi: rgba(255,255,255,0.10);
+
+  --t0: #efefef;
+  --t1: #8e8e8e;
+  --t2: #4a4a4a;
+
+  --accent:     #4d9de0;
+  --accent-dim: rgba(77,157,224,0.12);
+  --accent-glow:rgba(77,157,224,0.06);
+
+  --danger: #e05555;
+
+  --f-ui:   'Space Grotesk', system-ui, sans-serif;
+  --f-mono: 'Space Mono', 'Courier New', monospace;
+
+  --ease-expo: cubic-bezier(0.19,1,0.22,1);
+  --ease-snap: cubic-bezier(0.23,1,0.32,1);
+}
+
+/* ─── Reset ──────────────────────────────────────────────────── */
+*,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: var(--bg);
+  color: var(--t0);
+  font-family: var(--f-ui);
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  cursor: none;
+  user-select: none;
+}
+
+/* ─── Custom Cursor ──────────────────────────────────────────── */
+.cursor-ring {
+  position: fixed;
+  top: 0; left: 0;
+  width: 38px; height: 38px;
+  border: 1px solid rgba(77,157,224,0.55);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%,-50%);
+  transition:
+    width  .35s var(--ease-snap),
+    height .35s var(--ease-snap),
+    border-color .25s ease,
+    background .25s ease;
+  mix-blend-mode: difference;
+}
+
+.cursor-ring.hover {
+  width: 56px; height: 56px;
+  border-color: rgba(77,157,224,0.9);
+  background: rgba(77,157,224,0.05);
+}
+
+.cursor-ring.click {
+  width: 28px; height: 28px;
+  border-color: rgba(77,157,224,1);
+}
+
+.cursor-dot {
+  position: fixed;
+  top: 0; left: 0;
+  width: 5px; height: 5px;
+  background: var(--accent);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 10000;
+  transform: translate(-50%,-50%);
+  transition: transform .1s ease;
+}
+
+/* ─── Scanlines Overlay ──────────────────────────────────────── */
+.scanlines {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9998;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 2px,
+    rgba(0,0,0,0.07) 2px,
+    rgba(0,0,0,0.07) 4px
+  );
+}
+
+/* ─── Background Canvas ──────────────────────────────────────── */
+#bg-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ─── Boot Overlay ───────────────────────────────────────────── */
+.boot-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 8000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: opacity .9s ease, visibility .9s ease;
+}
+
+.boot-overlay.done {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.boot-scanline {
+  position: absolute;
+  left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(77,157,224,0.4),
+    transparent
+  );
+  animation: boot-scan 2.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes boot-scan {
+  0%   { top: -3px; opacity: 0; }
+  5%   { opacity: 1; }
+  95%  { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+.boot-content {
+  text-align: left;
+  width: min(480px, 90vw);
+}
+
+.boot-logo {
+  font-family: var(--f-mono);
+  font-size: clamp(2rem, 6vw, 3rem);
+  font-weight: 700;
+  letter-spacing: .4em;
+  color: var(--t0);
+}
+
+.boot-tag {
+  font-family: var(--f-mono);
+  font-size: .65rem;
+  letter-spacing: .2em;
+  color: var(--t2);
+  margin-top: .4rem;
+  text-transform: uppercase;
+}
+
+.boot-sep {
+  width: 100%;
+  height: 1px;
+  background: var(--border);
+  margin: 1.5rem 0;
+}
+
+.boot-log {
+  font-family: var(--f-mono);
+  font-size: .72rem;
+  line-height: 1.9;
+  color: var(--accent);
+  min-height: 6.5rem;
+}
+
+.boot-log .bl-line {
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity .3s ease, transform .3s ease;
+  display: flex;
+  align-items: center;
+  gap: .6em;
+}
+
+.boot-log .bl-line.show {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.boot-log .bl-line.done { color: var(--t1); }
+.boot-log .bl-line.done::before {
+  content: '✓';
+  color: var(--accent);
+  font-size: .6rem;
+}
+
+.boot-bar-wrap {
+  margin-top: 1.5rem;
+  width: 100%;
+  height: 1px;
+  background: var(--s3);
+  overflow: hidden;
+}
+
+.boot-bar-fill {
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  transition: width .4s var(--ease-snap);
+  box-shadow: 0 0 8px var(--accent);
+}
+
+/* ─── Navigation ─────────────────────────────────────────────── */
+.nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 500;
+  padding: 1.5rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nav-brand {
+  font-family: var(--f-mono);
+  font-size: .85rem;
+  font-weight: 700;
+  letter-spacing: .15em;
+  color: var(--t1);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  position: relative;
+}
+
+.nb-mark { color: var(--accent); }
+
+.nb-pulse {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: .7;
+  animation: pulse 2.5s ease infinite;
+}
+
+@keyframes pulse {
+  0%,100% { opacity:.7; transform:scale(1); }
+  50%      { opacity:.3; transform:scale(.5); }
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: .8rem;
+}
+
+.nav-indicator {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #3dba6a;
+  animation: pulse 3s ease infinite;
+}
+
+.nav-state-txt {
+  font-family: var(--f-mono);
+  font-size: .55rem;
+  letter-spacing: .2em;
+  color: var(--t2);
+}
+
+.nav-toggle {
+  background: none;
+  border: none;
+  cursor: none;
+  padding: .4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  position: relative;
+  z-index: 600;
+}
+
+.nav-toggle span {
+  display: block;
+  width: 22px; height: 1px;
+  background: var(--t1);
+  transform-origin: center;
+  transition:
+    transform .4s var(--ease-expo),
+    opacity   .3s ease,
+    width     .3s ease;
+}
+
+.nav-toggle.active span:nth-child(1) { transform: translateY(6px)  rotate(45deg); }
+.nav-toggle.active span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.nav-toggle.active span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+/* Nav overlay */
+.nav-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 490;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .5s var(--ease-expo), visibility .5s;
+}
+
+.nav-overlay.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.nav-overlay-bg {
+  position: absolute;
+  inset: 0;
+  background: rgba(4,4,4,0.97);
+  backdrop-filter: blur(20px);
+}
+
+.nav-menu {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3rem;
+}
+
+.nav-list {
+  list-style: none;
+  text-align: center;
+}
+
+.nav-list li { overflow: hidden; }
+
+.nav-link {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1.2rem;
+  text-decoration: none;
+  padding: .35rem 0;
+  transform: translateY(110%);
+  transition:
+    transform .65s var(--ease-expo),
+    letter-spacing .4s var(--ease-snap);
+}
+
+.nav-overlay.open .nav-list li:nth-child(1) .nav-link { transition-delay: .04s; }
+.nav-overlay.open .nav-list li:nth-child(2) .nav-link { transition-delay: .08s; }
+.nav-overlay.open .nav-list li:nth-child(3) .nav-link { transition-delay: .12s; }
+.nav-overlay.open .nav-list li:nth-child(4) .nav-link { transition-delay: .16s; }
+.nav-overlay.open .nav-link { transform: translateY(0); }
+
+.nav-link em {
+  font-style: normal;
+  font-family: var(--f-mono);
+  font-size: .65rem;
+  color: var(--accent);
+  letter-spacing: .1em;
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: opacity .3s ease .2s, transform .3s ease .2s;
+}
+
+.nav-link:hover em {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.nav-link span {
+  font-size: clamp(2.2rem, 6vw, 4.5rem);
+  font-weight: 300;
+  letter-spacing: .03em;
+  color: var(--t2);
+  transition: color .3s ease, letter-spacing .4s var(--ease-snap);
+}
+
+.nav-link:hover span {
+  color: var(--t0);
+  letter-spacing: .12em;
+}
+
+.nav-menu-footer {
+  display: flex;
+  gap: 2rem;
+  font-family: var(--f-mono);
+  font-size: .58rem;
+  letter-spacing: .15em;
+  color: var(--t2);
+  text-transform: uppercase;
+}
+
+/* ─── Main Interface ─────────────────────────────────────────── */
+.interface {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5rem 1.5rem 6rem;
+  pointer-events: none;
+}
+
+.iface-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.1rem;
+  width: 100%;
+  max-width: 680px;
+}
+
+/* ─── Status Ring ────────────────────────────────────────────── */
+.status-ring {
+  position: relative;
+  width: 170px; height: 170px;
+  flex-shrink: 0;
+}
+
+.status-ring svg {
+  width: 100%; height: 100%;
+  transform: rotate(-90deg);
+  overflow: visible;
+}
+
+.sr-track {
+  fill: none;
+  stroke: rgba(255,255,255,0.04);
+  stroke-width: 1;
+}
+
+.sr-arc {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-dasharray: 515.22;
+  stroke-dashoffset: 438;
+  transition: stroke-dashoffset .9s var(--ease-expo);
+  filter: drop-shadow(0 0 6px rgba(77,157,224,0.5));
+}
+
+body.jarvis-speaking .sr-arc {
+  stroke-dashoffset: 52;
+  animation: ring-sweep 2s var(--ease-expo) forwards, ring-glow 1.2s ease infinite alternate;
+}
+
+@keyframes ring-sweep {
+  from { stroke-dashoffset: 438; }
+  to   { stroke-dashoffset: 52; }
+}
+
+@keyframes ring-glow {
+  from { filter: drop-shadow(0 0 4px rgba(77,157,224,0.4)); }
+  to   { filter: drop-shadow(0 0 12px rgba(77,157,224,0.8)); }
+}
+
+body.jarvis-listening .sr-arc {
+  stroke: var(--danger);
+  stroke-dashoffset: 206;
+  filter: drop-shadow(0 0 6px rgba(224,85,85,0.5));
+}
+
+.sr-core {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .2rem;
+}
+
+.sr-state {
+  font-family: var(--f-mono);
+  font-size: .58rem;
+  letter-spacing: .35em;
+  color: var(--t2);
+  transition: color .3s ease;
+}
+
+body.jarvis-speaking  .sr-state { color: var(--accent); }
+body.jarvis-listening .sr-state { color: var(--danger); }
+body.jarvis-thinking  .sr-state { color: var(--t1); }
+
+.sr-freq {
+  font-family: var(--f-mono);
+  font-size: .72rem;
+  color: var(--t1);
+}
+
+/* Tick marks at cardinal points */
+.sr-tick {
+  position: absolute;
+  width: 6px; height: 1px;
+  background: rgba(255,255,255,0.12);
+  top: 50%; left: 50%;
+}
+
+.sr-tick-n { transform: translate(-50%, -50%) rotate(0deg)   translateX(90px); }
+.sr-tick-e { transform: translate(-50%, -50%) rotate(90deg)  translateX(90px); }
+.sr-tick-s { transform: translate(-50%, -50%) rotate(180deg) translateX(90px); }
+.sr-tick-w { transform: translate(-50%, -50%) rotate(270deg) translateX(90px); }
+
+/* ─── JARVIS Identity ────────────────────────────────────────── */
+.jarvis-id {
+  text-align: center;
+  pointer-events: none;
+}
+
+.jarvis-name {
+  font-family: var(--f-mono);
+  font-size: clamp(.85rem, 2vw, 1rem);
+  font-weight: 700;
+  letter-spacing: .55em;
+  color: var(--t1);
+  padding-right: .55em;
+}
+
+.jdot { color: var(--accent); opacity: .6; }
+
+.jarvis-sub {
+  font-size: .6rem;
+  letter-spacing: .18em;
+  color: var(--t2);
+  text-transform: uppercase;
+  margin-top: .3rem;
+}
+
+/* ─── Conversation ───────────────────────────────────────────── */
+.conversation {
+  width: 100%;
+  max-height: 260px;
+  overflow-y: auto;
+  pointer-events: all;
+  scrollbar-width: thin;
+  scrollbar-color: var(--s3) transparent;
+}
+
+.conversation::-webkit-scrollbar { width: 2px; }
+.conversation::-webkit-scrollbar-thumb { background: var(--s3); }
+
+.conv-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+  padding: .5rem 0;
+}
+
+.msg {
+  display: flex;
+  gap: .9rem;
+  animation: msgIn .4s var(--ease-snap) both;
+}
+
+@keyframes msgIn {
+  from { opacity:0; transform:translateY(10px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+.msg-role {
+  font-family: var(--f-mono);
+  font-size: .55rem;
+  letter-spacing: .2em;
+  color: var(--t2);
+  text-transform: uppercase;
+  flex-shrink: 0;
+  padding-top: .2rem;
+  min-width: 3.5rem;
+}
+
+.msg--jarvis .msg-role { color: var(--accent); }
+
+.msg-body { flex: 1; }
+
+.msg--user {
+  flex-direction: row-reverse;
+}
+
+.msg--user .msg-role { text-align: right; }
+
+.msg--jarvis .msg-text {
+  border-left: 1px solid rgba(77,157,224,0.3);
+  padding-left: .9rem;
+}
+
+.msg--user .msg-text {
+  border-right: 1px solid var(--s3);
+  padding-right: .9rem;
+  text-align: right;
+}
+
+.msg-text {
+  font-size: .875rem;
+  line-height: 1.75;
+  color: var(--t1);
+  font-weight: 300;
+}
+
+.msg--jarvis .msg-text { color: var(--t0); }
+
+.type-cursor {
+  display: inline-block;
+  width: 2px; height: 1em;
+  background: var(--accent);
+  margin-left: 1px;
+  vertical-align: middle;
+  animation: blink .75s step-end infinite;
+}
+
+@keyframes blink {
+  0%,100% { opacity:1; }
+  50%      { opacity:0; }
+}
+
+/* ─── Input Dock ─────────────────────────────────────────────── */
+.input-dock {
+  width: 100%;
+  pointer-events: all;
+}
+
+.input-shell {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  padding: .7rem 1rem;
+  transition: border-color .3s ease, box-shadow .3s ease;
+}
+
+.input-shell:focus-within {
+  border-color: var(--border-hi);
+  box-shadow: 0 0 0 1px rgba(77,157,224,0.08), 0 8px 32px rgba(0,0,0,0.5);
+}
+
+.btn-mic, .btn-send {
+  background: none;
+  border: none;
+  cursor: none;
+  color: var(--t2);
+  width: 26px; height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: color .2s ease;
+}
+
+.btn-mic svg, .btn-send svg { width: 15px; height: 15px; }
+
+.btn-mic:hover, .btn-send:hover { color: var(--t0); }
+.btn-mic.active { color: var(--danger); }
+
+.input-field {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--t0);
+  font-family: var(--f-ui);
+  font-size: .875rem;
+  font-weight: 300;
+  letter-spacing: .02em;
+  cursor: none;
+}
+
+.input-field::placeholder { color: var(--t2); }
+
+.input-hint {
+  font-family: var(--f-mono);
+  font-size: .55rem;
+  letter-spacing: .1em;
+  color: var(--t2);
+  text-align: center;
+  margin-top: .65rem;
+}
+
+/* ─── Frequency Strip ────────────────────────────────────────── */
+.freq-strip {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 80px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+#freq-canvas {
+  width: 100%; height: 100%;
+  display: block;
+}
+
+/* ─── System Panel ───────────────────────────────────────────── */
+.sys-panel {
+  position: fixed;
+  left: 2rem;
+  bottom: 2rem;
+  z-index: 20;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: .65rem;
+}
+
+.sys-metric { display: flex; flex-direction: column; gap: .28rem; }
+
+.sm-label {
+  font-family: var(--f-mono);
+  font-size: .52rem;
+  letter-spacing: .2em;
+  color: var(--t2);
+}
+
+.sm-track {
+  width: 90px; height: 1px;
+  background: var(--s3);
+  overflow: hidden;
+}
+
+.sm-fill {
+  height: 100%;
+  background: var(--accent);
+  width: 0;
+  transition: width .6s var(--ease-expo);
+  opacity: .55;
+}
+
+.sm-time {
+  font-family: var(--f-mono);
+  font-size: .58rem;
+  letter-spacing: .1em;
+  color: var(--t2);
+  margin-top: .4rem;
+}
+
+/* ─── Body State Classes ─────────────────────────────────────── */
+body.jarvis-speaking .nav-indicator { background: var(--accent); }
+body.jarvis-listening .nav-indicator { background: var(--danger); }
+
+/* ─── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .sys-panel { display: none; }
+  .status-ring { width: 140px; height: 140px; }
+  .nav { padding: 1.2rem 1.2rem; }
+  .interface { padding: 4rem 1rem 5rem; }
+}

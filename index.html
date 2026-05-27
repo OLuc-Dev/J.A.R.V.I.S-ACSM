@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>J.A.R.V.I.S — ACSM Interface</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+
+  <div class="cursor-ring" id="cursor-ring"></div>
+  <div class="cursor-dot"  id="cursor-dot"></div>
+
+  <!-- Boot overlay -->
+  <div class="boot-overlay" id="boot-overlay">
+    <div class="boot-scanline"></div>
+    <div class="boot-content">
+      <div class="boot-logo">J.A.R.V.I.S</div>
+      <div class="boot-tag">ACSM // Classificado</div>
+      <div class="boot-sep"></div>
+      <div class="boot-log" id="boot-log"></div>
+      <div class="boot-bar-wrap">
+        <div class="boot-bar-fill" id="boot-bar-fill"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Background canvas -->
+  <canvas id="bg-canvas"></canvas>
+
+  <!-- CRT scanlines overlay -->
+  <div class="scanlines" aria-hidden="true"></div>
+
+  <!-- Navigation -->
+  <nav class="nav" id="nav">
+    <a href="#" class="nav-brand">
+      <span class="nb-mark">J</span>ARVIS
+      <span class="nb-pulse"></span>
+    </a>
+    <div class="nav-right">
+      <span class="nav-indicator" id="nav-indicator"></span>
+      <span class="nav-state-txt" id="nav-state-txt">ONLINE</span>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Abrir menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Full-screen nav overlay -->
+  <div class="nav-overlay" id="nav-overlay" aria-hidden="true">
+    <div class="nav-overlay-bg"></div>
+    <div class="nav-menu">
+      <ul class="nav-list">
+        <li><a href="#" class="nav-link" data-n="01"><em>01</em><span>Interface</span></a></li>
+        <li><a href="#" class="nav-link" data-n="02"><em>02</em><span>Sistemas</span></a></li>
+        <li><a href="#" class="nav-link" data-n="03"><em>03</em><span>Arquivos</span></a></li>
+        <li><a href="#" class="nav-link" data-n="04"><em>04</em><span>Protocolo</span></a></li>
+      </ul>
+      <div class="nav-menu-footer">
+        <span>ACSM v2.4.1</span>
+        <span>Acesso restrito</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main interface -->
+  <main class="interface" id="interface">
+    <div class="iface-center">
+
+      <!-- Status ring -->
+      <div class="status-ring" id="status-ring">
+        <svg viewBox="0 0 200 200" aria-hidden="true">
+          <circle class="sr-track" cx="100" cy="100" r="82"/>
+          <circle class="sr-arc"   cx="100" cy="100" r="82" id="sr-arc"/>
+        </svg>
+        <div class="sr-core">
+          <div class="sr-state" id="sr-state">IDLE</div>
+          <div class="sr-freq"  id="sr-freq">— Hz</div>
+        </div>
+        <div class="sr-tick sr-tick-n"></div>
+        <div class="sr-tick sr-tick-e"></div>
+        <div class="sr-tick sr-tick-s"></div>
+        <div class="sr-tick sr-tick-w"></div>
+      </div>
+
+      <!-- Identity -->
+      <header class="jarvis-id">
+        <h1 class="jarvis-name">
+          J<span class="jdot">.</span>A<span class="jdot">.</span>R<span class="jdot">.</span>V<span class="jdot">.</span>I<span class="jdot">.</span>S
+        </h1>
+        <p class="jarvis-sub">Just A Rather Very Intelligent System</p>
+      </header>
+
+      <!-- Conversation -->
+      <div class="conversation" id="conversation">
+        <div class="conv-feed" id="conv-feed"></div>
+      </div>
+
+      <!-- Input -->
+      <div class="input-dock">
+        <div class="input-shell" id="input-shell">
+          <button class="btn-mic" id="btn-mic" title="Comando de voz">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="23"/>
+              <line x1="8" y1="23" x2="16" y2="23"/>
+            </svg>
+          </button>
+          <input
+            class="input-field" id="input-field"
+            type="text"
+            placeholder="Fale ou escreva…"
+            autocomplete="off" spellcheck="false"
+          />
+          <button class="btn-send" id="btn-send">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"/>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+          </button>
+        </div>
+        <p class="input-hint">Enter para enviar &nbsp;·&nbsp; Microfone para voz</p>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Frequency visualizer strip -->
+  <div class="freq-strip" id="freq-strip">
+    <canvas id="freq-canvas"></canvas>
+  </div>
+
+  <!-- System metrics panel -->
+  <aside class="sys-panel" id="sys-panel">
+    <div class="sys-metric">
+      <div class="sm-label">NÚCLEO NEURAL</div>
+      <div class="sm-track"><div class="sm-fill" id="sm-neural"></div></div>
+    </div>
+    <div class="sys-metric">
+      <div class="sm-label">SÍNTESE VOCAL</div>
+      <div class="sm-track"><div class="sm-fill" id="sm-voice"></div></div>
+    </div>
+    <div class="sys-metric">
+      <div class="sm-label">LATÊNCIA</div>
+      <div class="sm-track"><div class="sm-fill" id="sm-latency"></div></div>
+    </div>
+    <div class="sm-time" id="sm-time">--:--:--</div>
+  </aside>
+
+  <script src="js/cursor.js"></script>
+  <script src="js/menu.js"></script>
+  <script src="js/background.js"></script>
+  <script src="js/voice.js"></script>
+  <script src="js/jarvis.js"></script>
+</body>
+</html>
