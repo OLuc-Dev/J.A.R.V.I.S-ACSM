@@ -246,7 +246,7 @@ async function loadSettings() {
   const mem = await j.getConfig(); // reuse — memory is inside config response
 
   const el = n => document.getElementById(n);
-  el('cfg-key')?.setAttribute('placeholder', cfg.apiKey ? '••••••••' : 'sk-ant-api03-…');
+  el('cfg-key')?.setAttribute('placeholder', cfg.apiKey ? '••••••••' : 'sk-or-…');
   if (cfg.apiKey) el('cfg-key').value = '';
   el('cfg-name').value         = cfg.userName    || '';
   el('cfg-model').value        = cfg.model       || 'claude-opus-4-7';
@@ -316,7 +316,7 @@ function esc(str) {
   try {
     const cfg = await j.getConfig();
     if (!cfg.apiKey) {
-      addMsg('jarvis', 'Olá. Para ativar inteligência completa, configure sua API key em Configurações.');
+      addMsg('jarvis', 'Olá. Para ativar inteligência completa, configure sua API key do OpenRouter em Configurações.');
     } else {
       addMsg('jarvis', `Sistemas online. ${cfg.userName ? `Olá, ${cfg.userName}.` : 'Como posso ajudá-lo hoje?'}`);
     }

@@ -3,7 +3,7 @@ const path = require('path');
 
 const DEFAULTS = {
   apiKey:      '',
-  model:       'claude-opus-4-7',
+  model:       'anthropic/claude-opus-4-5',
   vaultPath:   '',
   journalTime: '08:00',
   startWithWindows: false,
@@ -102,20 +102,23 @@ class Claude {
 
     const history  = this.getHistory();
     const system   = this._buildSystem(vaultCtx, memoryCtx);
-    const messages = [...history, { role: 'user', content: userMessage }];
+    const messages = [
+      { role: 'system', content: system },
+      ...history,
+      { role: 'user', content: userMessage },
+    ];
 
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
+        'Authorization': `Bearer ${apiKey}`,
+        'HTTP-Referer': 'https://github.com/OLuc-Dev/J.A.R.V.I.S-ACSM',
+        'X-Title': 'JARVIS Desktop',
       },
       body: JSON.stringify({
         model: this._cfg.model,
         max_tokens: 1500,
-        system,
         messages,
         stream: true,
       }),
@@ -124,7 +127,7 @@ class Claude {
     if (!res.ok) {
       const j = await res.json().catch(() => ({}));
       const msg = j.error?.message || res.status;
-      if (res.status === 401) throw new Error('API key inválida.');
+      if (res.status === 401) throw new Error('API key inválida. Verifique sua chave OpenRouter.');
       throw new Error(`Erro ${res.status}: ${msg}`);
     }
 
@@ -145,9 +148,10 @@ class Claude {
         if (!raw || raw === '[DONE]') continue;
         try {
           const evt = JSON.parse(raw);
-          if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
-            full += evt.delta.text;
-            onChunk?.(evt.delta.text);
+          const text = evt.choices?.[0]?.delta?.content;
+          if (text) {
+            full += text;
+            onChunk?.(text);
           }
         } catch {}
       }
