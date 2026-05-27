@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com;">
+  <title>J.A.R.V.I.S</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Titlebar -->
+  <div class="titlebar">
+    <div class="tb-left">
+      <span class="tb-logo"><span class="tb-j">J</span>ARVIS</span>
+      <span class="tb-status" id="tb-status">ONLINE</span>
+    </div>
+    <div class="tb-right">
+      <button class="tb-btn" id="btn-minimize" title="Minimizar">─</button>
+      <button class="tb-btn tb-btn--close" id="btn-hide" title="Minimizar para bandeja">✕</button>
+    </div>
+  </div>
+
+  <!-- Layout -->
+  <div class="layout">
+
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <button class="nav-item active" data-view="chat"     title="Chat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>Chat</span>
+      </button>
+      <button class="nav-item" data-view="tasks"    title="Tarefas">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span>Tarefas</span>
+      </button>
+      <button class="nav-item" data-view="journal"  title="Diário">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <span>Diário</span>
+      </button>
+      <button class="nav-item" data-view="vault"    title="Vault">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+        <span>Vault</span>
+      </button>
+      <button class="nav-item nav-item--bottom" data-view="settings" title="Configurações">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>Config</span>
+      </button>
+    </nav>
+
+    <!-- Main content -->
+    <main class="content">
+
+      <!-- ── CHAT ── -->
+      <section class="view active" id="view-chat">
+        <div class="chat-feed" id="chat-feed"></div>
+        <div class="chat-input-wrap">
+          <div class="chat-input-shell">
+            <textarea class="chat-input" id="chat-input" rows="1"
+              placeholder="Fale com JARVIS… (Enter envia, Shift+Enter nova linha)"></textarea>
+            <button class="btn-send" id="btn-send" title="Enviar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+          <div class="chat-tools">
+            <button class="tool-btn" id="btn-clear-history">limpar histórico</button>
+            <span class="chat-hint">Enter envia · Shift+Enter nova linha</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── TASKS ── -->
+      <section class="view" id="view-tasks">
+        <div class="view-header">
+          <h2 class="view-title">Tarefas &amp; Lembretes</h2>
+        </div>
+        <div class="task-add">
+          <input class="task-input" id="task-title" placeholder="Nova tarefa…" type="text"/>
+          <input class="task-date" id="task-date" type="datetime-local" title="Prazo (opcional)"/>
+          <button class="btn-primary" id="btn-add-task">Adicionar</button>
+        </div>
+        <div class="task-list" id="task-list"></div>
+      </section>
+
+      <!-- ── JOURNAL ── -->
+      <section class="view" id="view-journal">
+        <div class="view-header">
+          <h2 class="view-title">Diário</h2>
+          <span class="view-date" id="journal-date"></span>
+        </div>
+        <div class="journal-prompt" id="journal-prompt"></div>
+        <textarea class="journal-editor" id="journal-editor"
+          placeholder="Escreva sua reflexão…"></textarea>
+        <div class="journal-actions">
+          <button class="btn-primary" id="btn-save-journal">Salvar no Vault</button>
+          <span class="journal-status" id="journal-status"></span>
+        </div>
+      </section>
+
+      <!-- ── VAULT ── -->
+      <section class="view" id="view-vault">
+        <div class="view-header">
+          <h2 class="view-title">Base de Conhecimento</h2>
+        </div>
+        <div class="vault-info" id="vault-info">
+          <div class="vault-stat"><span class="vs-label">CAMINHO</span><span class="vs-val" id="vs-path">—</span></div>
+          <div class="vault-stat"><span class="vs-label">ARQUIVOS</span><span class="vs-val" id="vs-count">—</span></div>
+          <div class="vault-stat"><span class="vs-label">ÚLTIMA SYNC</span><span class="vs-val" id="vs-sync">—</span></div>
+        </div>
+        <div class="vault-actions">
+          <button class="btn-primary" id="btn-refresh-vault">Sincronizar agora</button>
+        </div>
+        <div class="vault-note">
+          <p>JARVIS lê seus arquivos <code>.md</code> do vault Obsidian e usa como contexto em todas as conversas. Configure o caminho em <strong>Configurações</strong>.</p>
+          <p>Entradas do diário e notas criadas por JARVIS são salvas em <code>JARVIS/</code> dentro do vault.</p>
+        </div>
+      </section>
+
+      <!-- ── SETTINGS ── -->
+      <section class="view" id="view-settings">
+        <div class="view-header">
+          <h2 class="view-title">Configurações</h2>
+        </div>
+        <div class="settings-form">
+
+          <div class="sf-group">
+            <label class="sf-label">ANTHROPIC API KEY</label>
+            <input class="sf-input" id="cfg-key" type="password" placeholder="sk-ant-api03-…"/>
+            <p class="sf-hint">Armazenada localmente. Obtenha em console.anthropic.com</p>
+          </div>
+
+          <div class="sf-group">
+            <label class="sf-label">SEU NOME</label>
+            <input class="sf-input" id="cfg-name" type="text" placeholder="Como JARVIS deve te chamar"/>
+          </div>
+
+          <div class="sf-group">
+            <label class="sf-label">MODELO</label>
+            <select class="sf-input sf-select" id="cfg-model">
+              <option value="claude-opus-4-7">claude-opus-4-7 (máxima inteligência)</option>
+              <option value="claude-sonnet-4-6">claude-sonnet-4-6 (rápido + capaz)</option>
+              <option value="claude-haiku-4-5-20251001">claude-haiku-4-5 (econômico)</option>
+            </select>
+          </div>
+
+          <div class="sf-sep"></div>
+
+          <div class="sf-group">
+            <label class="sf-label">VAULT OBSIDIAN (pasta local)</label>
+            <div class="sf-row">
+              <input class="sf-input sf-input--flex" id="cfg-vault" type="text" placeholder="C:\Users\Você\Obsidian\MeuVault" readonly/>
+              <button class="btn-secondary" id="btn-browse-vault">Procurar…</button>
+            </div>
+          </div>
+
+          <div class="sf-group">
+            <label class="sf-label">HORÁRIO DO DIÁRIO DIÁRIO</label>
+            <input class="sf-input sf-input--sm" id="cfg-journal-time" type="time" value="08:00"/>
+            <p class="sf-hint">JARVIS vai te lembrar de escrever no diário neste horário.</p>
+          </div>
+
+          <div class="sf-group sf-group--row">
+            <label class="sf-label sf-label--inline">INICIAR COM WINDOWS</label>
+            <label class="toggle">
+              <input type="checkbox" id="cfg-startup"/>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="sf-sep"></div>
+
+          <div class="sf-group">
+            <label class="sf-label">MEMÓRIA APRENDIDA</label>
+            <div class="sf-memory" id="cfg-memory-preview">(nenhum fato memorizado ainda)</div>
+          </div>
+
+          <div class="sf-actions">
+            <button class="btn-primary" id="btn-save-cfg">Salvar configurações</button>
+            <button class="btn-danger"  id="btn-clear-memory">Limpar memória</button>
+          </div>
+
+          <div class="sf-status" id="cfg-status"></div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
