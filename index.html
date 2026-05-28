@@ -72,6 +72,14 @@
 
       <!-- Status ring -->
       <div class="status-ring" id="status-ring">
+        <div class="voice-orb" aria-hidden="true">
+          <canvas id="voice-orb-canvas"></canvas>
+          <div class="vo-halo vo-halo--outer"></div>
+          <div class="vo-halo vo-halo--inner"></div>
+          <div class="vo-core"></div>
+          <div class="vo-reticle vo-reticle--x"></div>
+          <div class="vo-reticle vo-reticle--y"></div>
+        </div>
         <svg viewBox="0 0 200 200" aria-hidden="true">
           <circle class="sr-track" cx="100" cy="100" r="82"/>
           <circle class="sr-arc"   cx="100" cy="100" r="82" id="sr-arc"/>
