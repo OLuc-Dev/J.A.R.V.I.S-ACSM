@@ -468,7 +468,8 @@ async function loadSettings() {
   el('cfg-groq')?.setAttribute('placeholder', cfg.groqKey ? '••••••••' : 'gsk_…');
   if (cfg.groqKey) el('cfg-groq').value = '';
   el('cfg-name').value         = cfg.userName    || '';
-  el('cfg-model').value        = cfg.model       || 'claude-opus-4-7';
+  el('cfg-model').value        = cfg.model       || 'meta-llama/llama-3.1-8b-instruct:free';
+  if (el('cfg-model-custom')) el('cfg-model-custom').value = '';
   el('cfg-vault').value        = cfg.vaultPath   || '';
   el('cfg-journal-time').value = cfg.journalTime || '08:00';
   if (el('cfg-startup')) el('cfg-startup').checked = !!cfg.startWithWindows;
@@ -494,7 +495,7 @@ document.getElementById('btn-save-cfg')?.addEventListener('click', async () => {
 
   const cfg = {
     userName:         el('cfg-name')?.value?.trim()         || '',
-    model:            el('cfg-model')?.value                || 'google/gemini-2.0-flash-exp:free',
+    model:            el('cfg-model-custom')?.value?.trim() || el('cfg-model')?.value || 'meta-llama/llama-3.1-8b-instruct:free',
     vaultPath:        el('cfg-vault')?.value?.trim()        || '',
     journalTime:      el('cfg-journal-time')?.value         || '08:00',
     startWithWindows: el('cfg-startup')?.checked            || false,

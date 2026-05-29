@@ -3,7 +3,7 @@ const path = require('path');
 
 const DEFAULTS = {
   apiKey:      '',
-  model:       'google/gemini-2.0-flash-exp:free',
+  model:       'meta-llama/llama-3.1-8b-instruct:free',
   vaultPath:   '',
   journalTime: '08:00',
   startWithWindows: false,

@@ -151,23 +151,25 @@
             <label class="sf-label">MODELO</label>
             <select class="sf-input sf-select" id="cfg-model">
               <optgroup label="── GRATUITOS ✓ ──">
-                <option value="google/gemini-2.0-flash-exp:free">Gemini 2.0 Flash (grátis)</option>
-                <option value="meta-llama/llama-3.3-70b-instruct:free">Llama 3.3 70B (grátis)</option>
-                <option value="deepseek/deepseek-chat:free">DeepSeek V3 (grátis)</option>
+                <option value="meta-llama/llama-3.1-8b-instruct:free">Llama 3.1 8B (grátis)</option>
+                <option value="meta-llama/llama-3.2-11b-vision-instruct:free">Llama 3.2 11B (grátis)</option>
                 <option value="mistralai/mistral-7b-instruct:free">Mistral 7B (grátis)</option>
-                <option value="google/gemma-3-27b-it:free">Gemma 3 27B (grátis)</option>
-                <option value="qwen/qwen3-235b-a22b:free">Qwen3 235B (grátis)</option>
+                <option value="google/gemma-2-9b-it:free">Gemma 2 9B (grátis)</option>
+                <option value="qwen/qwen-2-7b-instruct:free">Qwen 2 7B (grátis)</option>
+                <option value="microsoft/phi-3-mini-128k-instruct:free">Phi-3 Mini (grátis)</option>
               </optgroup>
               <optgroup label="── Claude (pago) ──">
-                <option value="anthropic/claude-opus-4-5">claude-opus-4-5 (máxima inteligência)</option>
-                <option value="anthropic/claude-sonnet-4-5">claude-sonnet-4-5 (rápido)</option>
-                <option value="anthropic/claude-haiku-4-5">claude-haiku-4-5 (econômico)</option>
+                <option value="anthropic/claude-opus-4-5">claude-opus-4-5</option>
+                <option value="anthropic/claude-sonnet-4-5">claude-sonnet-4-5</option>
+                <option value="anthropic/claude-haiku-4-5">claude-haiku-4-5</option>
               </optgroup>
               <optgroup label="── OpenAI (pago) ──">
                 <option value="openai/gpt-4o">gpt-4o</option>
                 <option value="openai/gpt-4o-mini">gpt-4o-mini</option>
               </optgroup>
             </select>
+            <input class="sf-input" id="cfg-model-custom" type="text" placeholder="Ou digite o ID do modelo manualmente (ex: meta-llama/llama-3.3-70b-instruct:free)" style="margin-top:.4rem"/>
+            <p class="sf-hint">ID customizado sobrescreve a seleção acima. Veja todos em openrouter.ai/models (filtre por "free").</p>
           </div>
 
           <div class="sf-sep"></div>
