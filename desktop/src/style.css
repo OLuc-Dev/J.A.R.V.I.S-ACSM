@@ -554,3 +554,83 @@ html, body {
 
 .btn-danger { border-color: var(--border); color: var(--t2); }
 .btn-danger:hover { border-color: var(--danger); color: var(--danger); }
+
+/* ════════════════════ VOICE MODE (fullscreen) ════════════════════ */
+.tb-btn--voice svg { width: 14px; height: 14px; }
+.tb-btn--voice:hover { color: var(--accent); background: var(--s3); }
+
+.voice-mode {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: radial-gradient(ellipse at center, #0a0805 0%, #020202 70%);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  -webkit-app-region: drag;
+}
+.voice-mode.active { display: flex; animation: vmFade .4s ease; }
+@keyframes vmFade { from { opacity: 0; } to { opacity: 1; } }
+
+.vm-core {
+  width: min(62vh, 62vw);
+  height: min(62vh, 62vw);
+  -webkit-app-region: no-drag;
+}
+
+.vm-status {
+  font-family: var(--f-mono);
+  font-size: .8rem;
+  letter-spacing: .42em;
+  text-transform: uppercase;
+  color: var(--t1);
+  margin-top: 1.4rem;
+  opacity: .85;
+}
+
+.vm-transcript {
+  font-family: var(--f-sans);
+  font-size: 1rem;
+  color: var(--t2);
+  margin-top: .9rem;
+  min-height: 1.4em;
+  max-width: 70%;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.vm-talk {
+  -webkit-app-region: no-drag;
+  margin-top: 2rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  color: var(--t1);
+  font-family: var(--f-mono);
+  font-size: .62rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  padding: .7rem 1.6rem;
+  border-radius: 40px;
+  cursor: pointer;
+  display: flex; align-items: center; gap: .6rem;
+  transition: all .2s;
+}
+.vm-talk svg { width: 15px; height: 15px; }
+.vm-talk:hover { border-color: var(--border-hi); color: var(--t0); }
+.vm-talk.listening {
+  border-color: #ff4d4d; color: #ff4d4d;
+  animation: micPulse 1s ease-in-out infinite;
+}
+
+.vm-exit {
+  -webkit-app-region: no-drag;
+  position: absolute;
+  top: 1.4rem; right: 1.6rem;
+  background: none; border: none;
+  color: var(--t2); font-size: 1.1rem;
+  cursor: pointer; width: 34px; height: 34px;
+  border-radius: 4px;
+  transition: background .15s, color .15s;
+}
+.vm-exit:hover { background: var(--s3); color: var(--t0); }

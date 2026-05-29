@@ -17,6 +17,9 @@
       <span class="tb-status" id="tb-status">ONLINE</span>
     </div>
     <div class="tb-right">
+      <button class="tb-btn tb-btn--voice" id="btn-voice-mode" title="Modo voz (tela cheia)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8" opacity=".5"/></svg>
+      </button>
       <button class="tb-btn" id="btn-minimize" title="Minimizar">─</button>
       <button class="tb-btn tb-btn--close" id="btn-hide" title="Minimizar para bandeja">✕</button>
     </div>
@@ -222,6 +225,19 @@
     </main>
   </div>
 
+  <!-- ── VOICE MODE (fullscreen) ── -->
+  <div class="voice-mode" id="voice-mode">
+    <button class="vm-exit" id="vm-exit" title="Sair do modo voz">✕</button>
+    <canvas class="vm-core" id="vm-core"></canvas>
+    <div class="vm-status" id="vm-status">JARVIS</div>
+    <div class="vm-transcript" id="vm-transcript"></div>
+    <button class="vm-talk" id="vm-talk">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      <span>Falar</span>
+    </button>
+  </div>
+
+  <script src="core.js"></script>
   <script src="renderer.js"></script>
 </body>
 </html>

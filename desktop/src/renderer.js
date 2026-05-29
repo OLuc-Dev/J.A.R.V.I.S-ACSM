@@ -88,7 +88,12 @@ j.onChunk(chunk => {
   if (cursor) cursor.insertAdjacentText('beforebegin', chunk);
   else currentMsg.textContent += chunk;
   scrollFeed();
-  setStatus('FALANDO');
+  setStatus('PROCESSANDO');
+  const vt = document.getElementById('vm-transcript');
+  if (vt && voiceModeOn) {
+    const clean = currentMsg.textContent.replace(/\s*\[(MEMORIZAR|TAREFA):.*?\]/g, '');
+    vt.textContent = clean;
+  }
 });
 
 j.onDone(fullText => {
@@ -135,6 +140,75 @@ j.onJournalReady(prompt => {
   addMsg('jarvis', `📝 Hora do seu diário!\n${prompt}\nAbra a aba "Diário" para escrever.`);
 });
 
+/* ════════════════════ CORE + VOICE MODE ════════════════════ */
+let core = null;
+let voiceModeOn = false;
+let micStream = null, audioCtx = null, analyser = null, ampRAF = null;
+
+function initCore() {
+  const canvas = document.getElementById('vm-core');
+  if (canvas && window.JarvisCore && !core) {
+    core = new JarvisCore(canvas, { particles: 1000 });
+  }
+}
+
+async function startMicAnalyser() {
+  if (analyser) return;
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioCtx  = new (window.AudioContext || window.webkitAudioContext)();
+    const src = audioCtx.createMediaStreamSource(micStream);
+    analyser  = audioCtx.createAnalyser();
+    analyser.fftSize = 512;
+    src.connect(analyser);
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    const tick = () => {
+      analyser.getByteTimeDomainData(data);
+      let sum = 0;
+      for (let i = 0; i < data.length; i++) {
+        const v = (data[i] - 128) / 128;
+        sum += v * v;
+      }
+      const rms = Math.sqrt(sum / data.length);
+      if (core) core.setAmplitude(Math.min(1, rms * 3.2));
+      ampRAF = requestAnimationFrame(tick);
+    };
+    tick();
+  } catch { /* mic unavailable */ }
+}
+
+function stopMicAnalyser() {
+  if (ampRAF) cancelAnimationFrame(ampRAF);
+  ampRAF = null;
+  if (micStream) micStream.getTracks().forEach(t => t.stop());
+  if (audioCtx) audioCtx.close().catch(() => {});
+  micStream = null; audioCtx = null; analyser = null;
+  if (core) core.setAmplitude(0);
+}
+
+function enterVoiceMode() {
+  initCore();
+  voiceModeOn = true;
+  document.getElementById('voice-mode')?.classList.add('active');
+  if (core) { core._resize(); core.start(); }
+  startMicAnalyser();
+  const vt = document.getElementById('vm-transcript');
+  if (vt) vt.textContent = 'Toque em Falar e fale comigo.';
+  setStatus('ONLINE');
+}
+
+function exitVoiceMode() {
+  voiceModeOn = false;
+  document.getElementById('voice-mode')?.classList.remove('active');
+  if (core) core.stop();
+  stopMicAnalyser();
+  if (listening && recognition) try { recognition.stop(); } catch {}
+}
+
+document.getElementById('btn-voice-mode')?.addEventListener('click', enterVoiceMode);
+document.getElementById('vm-exit')?.addEventListener('click', exitVoiceMode);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && voiceModeOn) exitVoiceMode(); });
+
 /* ════════════════════ VOICE — TTS (falar) ════════════════════ */
 let voiceEnabled   = false;
 let selectedVoice  = '';   // voiceURI
@@ -180,7 +254,7 @@ function pickVoice() {
 }
 
 function speak(text) {
-  if (!voiceEnabled || !window.speechSynthesis || !text) return;
+  if ((!voiceEnabled && !voiceModeOn) || !window.speechSynthesis || !text) return;
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
   const v = pickVoice();
@@ -188,6 +262,8 @@ function speak(text) {
   else u.lang = 'pt-BR';
   u.rate = 1.02;
   u.pitch = 1.0;
+  u.onstart = () => setStatus('FALANDO');
+  u.onend   = () => { if (!listening) setStatus('ONLINE'); };
   window.speechSynthesis.speak(u);
 }
 
@@ -210,6 +286,7 @@ if (SR) {
   recognition.onstart = () => {
     listening = true;
     btnMic?.classList.add('listening');
+    document.getElementById('vm-talk')?.classList.add('listening');
     setStatus('OUVINDO');
     stopSpeaking();
   };
@@ -219,6 +296,8 @@ if (SR) {
     for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript;
     chatInput.value = txt;
     autoResize(chatInput);
+    const vt = document.getElementById('vm-transcript');
+    if (vt && voiceModeOn) vt.textContent = txt;
   };
 
   recognition.onerror = e => {
@@ -237,19 +316,21 @@ if (SR) {
   recognition.onend = () => {
     listening = false;
     btnMic?.classList.remove('listening');
+    document.getElementById('vm-talk')?.classList.remove('listening');
     if (chatInput.value.trim()) { setStatus('ONLINE'); sendMessage(); }
     else setStatus('ONLINE');
   };
 
-  btnMic?.addEventListener('click', () => {
+  const toggleListen = () => {
     if (listening) { recognition.stop(); return; }
     try { recognition.start(); } catch { /* already started */ }
-  });
+  };
+  btnMic?.addEventListener('click', toggleListen);
+  document.getElementById('vm-talk')?.addEventListener('click', toggleListen);
 } else {
-  // No speech recognition available
-  btnMic?.addEventListener('click', () => {
-    addMsg('jarvis', 'Reconhecimento de voz não disponível neste ambiente.');
-  });
+  const noSTT = () => addMsg('jarvis', 'Reconhecimento de voz não disponível neste ambiente.');
+  btnMic?.addEventListener('click', noSTT);
+  document.getElementById('vm-talk')?.addEventListener('click', noSTT);
 }
 
 /* ════════════════════ TASKS ════════════════════ */
@@ -428,9 +509,19 @@ document.getElementById('btn-clear-memory')?.addEventListener('click', async () 
 });
 
 /* ── Status bar ── */
+const CORE_STATE = {
+  INICIALIZANDO: 'idle', ONLINE: 'idle',
+  PROCESSANDO: 'thinking',
+  FALANDO: 'speaking',
+  OUVINDO: 'listening',
+  ALERTA: 'alert', ERRO: 'alert',
+};
 function setStatus(s) {
   const el = document.getElementById('tb-status');
   if (el) el.textContent = s;
+  const vm = document.getElementById('vm-status');
+  if (vm) vm.textContent = s === 'ONLINE' ? 'JARVIS' : s;
+  if (core) core.setState(CORE_STATE[s] || 'idle');
 }
 
 /* ── Helpers ── */
