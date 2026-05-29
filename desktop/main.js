@@ -1,6 +1,5 @@
-const { app, BrowserWindow, Tray, Menu, ipcMain, Notification, shell, dialog } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, Notification, shell, dialog, globalShortcut } = require('electron');
 const path  = require('path');
-const cron  = require('node-cron');
 const Claude    = require('./backend/claude');
 const Vault     = require('./backend/vault');
 const Tasks     = require('./backend/tasks');
@@ -32,8 +31,8 @@ function createWindow() {
   mainWindow.loadFile(path.join(__dirname, 'src', 'index.html'));
 
   /* Allow microphone + media for voice input */
-  mainWindow.webContents.session.setPermissionRequestHandler((wc, perm, cb) => {
-    cb(perm === 'media' || perm === 'audioCapture' || perm === 'microphone');
+  mainWindow.webContents.session.setPermissionRequestHandler((_, perm, cb) => {
+    cb(['media', 'audioCapture', 'microphone'].includes(perm));
   });
   mainWindow.webContents.session.setPermissionCheckHandler(() => true);
 
@@ -50,36 +49,52 @@ function createTray() {
   tray.setToolTip('JARVIS — Online');
 
   const menu = Menu.buildFromTemplate([
-    { label: 'Abrir JARVIS',   click: () => mainWindow.show() },
-    { label: 'Separador', type: 'separator' },
-    { label: 'Encerrar',  click: () => { app.quit(); } },
+    { label: 'Abrir JARVIS',  click: () => mainWindow.show() },
+    { label: 'Modo Voz',      click: () => { mainWindow.show(); mainWindow.webContents.send('wake:word'); } },
+    { type: 'separator' },
+    { label: 'Encerrar',      click: () => app.quit() },
   ]);
 
   tray.setContextMenu(menu);
   tray.on('double-click', () => mainWindow.show());
 }
 
+/* ── Global hotkey (wake word) ── */
+function registerHotkey(hotkey) {
+  globalShortcut.unregisterAll();
+  const combo = hotkey || 'Alt+Space';
+  try {
+    globalShortcut.register(combo, () => {
+      mainWindow?.show();
+      mainWindow?.webContents.send('wake:word');
+    });
+  } catch {}
+}
+
 /* ── IPC Handlers ── */
 function registerIPC() {
 
   /* Config */
-  ipcMain.handle('cfg:get',  () => ({ ...claude.getConfig(), memoryFacts: claude.getMemory() }));
-  ipcMain.handle('cfg:set',  (_, cfg) => {
+  ipcMain.handle('cfg:get', () => ({ ...claude.getConfig(), memoryFacts: claude.getMemory() }));
+  ipcMain.handle('cfg:set', (_, cfg) => {
     if (cfg.clearMemory)  { claude.clearMemory();  return { ok: true }; }
     if (cfg.clearHistory) { claude.clearHistory(); return { ok: true }; }
     claude.setConfig(cfg);
-    if (cfg.vaultPath   !== undefined) vault.setVaultPath(cfg.vaultPath);
-    if (cfg.journalTime !== undefined) scheduler.setJournalTime(cfg.journalTime);
+    if (cfg.vaultPath    !== undefined) vault.setVaultPath(cfg.vaultPath);
+    if (cfg.journalTime  !== undefined) scheduler.setJournalTime(cfg.journalTime);
+    if (cfg.wakeHotkey   !== undefined) registerHotkey(cfg.wakeHotkey);
     if (cfg.startWithWindows !== undefined) {
       app.setLoginItemSettings({ openAtLogin: cfg.startWithWindows, name: 'JARVIS' });
     }
     return { ok: true };
   });
 
-  /* Chat */
+  /* Chat — use relevant vault context keyed by the user's message */
   ipcMain.handle('chat:send', async (_, text) => {
-    const vaultCtx  = await vault.getContext();
-    const memoryCtx = claude.getMemory();
+    const [vaultCtx, memoryCtx] = await Promise.all([
+      vault.getRelevantContext(text),
+      Promise.resolve(claude.getMemory()),
+    ]);
     let full = '';
     try {
       full = await claude.ask(text, vaultCtx, memoryCtx, chunk => {
@@ -169,9 +184,13 @@ app.whenReady().then(async () => {
   registerIPC();
   createWindow();
   createTray();
-
   scheduler.start();
+
+  /* Register default wake hotkey (or saved preference) */
+  const cfg = claude.getConfig();
+  registerHotkey(cfg.wakeHotkey || 'Alt+Space');
 });
 
 app.on('window-all-closed', e => e.preventDefault());
-app.on('activate', () => mainWindow.show());
+app.on('will-quit', () => globalShortcut.unregisterAll());
+app.on('activate', () => mainWindow?.show());

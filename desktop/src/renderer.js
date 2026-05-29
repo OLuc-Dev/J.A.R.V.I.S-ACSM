@@ -140,6 +140,25 @@ j.onJournalReady(prompt => {
   addMsg('jarvis', `📝 Hora do seu diário!\n${prompt}\nAbra a aba "Diário" para escrever.`);
 });
 
+j.onWakeWord(() => {
+  // Switch to chat view first
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelector('.nav-item[data-view="chat"]')?.classList.add('active');
+  document.getElementById('view-chat')?.classList.add('active');
+  // Enter voice mode and auto-start recording after a short delay
+  if (!voiceModeOn) enterVoiceMode();
+  setTimeout(() => { if (!listening) startRecording(); }, 500);
+});
+
+j.onProactive(msg => {
+  if (!msg || !msg.text) return;
+  addMsg('jarvis', msg.text);
+  setStatus('ALERTA');
+  setTimeout(() => setStatus('ONLINE'), 4000);
+  if (voiceEnabled || voiceModeOn) speak(msg.text);
+});
+
 /* ════════════════════ CORE + VOICE MODE ════════════════════ */
 let core = null;
 let voiceModeOn = false;
@@ -193,7 +212,7 @@ function enterVoiceMode() {
   if (core) { core._resize(); core.start(); }
   startMicAnalyser();
   const vt = document.getElementById('vm-transcript');
-  if (vt) vt.textContent = 'Toque em Falar e fale comigo.';
+  if (vt) vt.textContent = 'Toque em Falar ou pressione Alt+Space de qualquer lugar.';
   setStatus('ONLINE');
 }
 
@@ -473,6 +492,7 @@ async function loadSettings() {
   el('cfg-vault').value        = cfg.vaultPath   || '';
   el('cfg-journal-time').value = cfg.journalTime || '08:00';
   if (el('cfg-startup')) el('cfg-startup').checked = !!cfg.startWithWindows;
+  if (el('cfg-hotkey')) el('cfg-hotkey').value = cfg.wakeHotkey || 'Alt+Space';
   if (el('cfg-voice'))   el('cfg-voice').checked   = !!cfg.voiceEnabled;
   loadVoices();
   if (el('cfg-voice-select') && cfg.voiceURI) el('cfg-voice-select').value = cfg.voiceURI;
@@ -541,6 +561,7 @@ document.getElementById('btn-save-cfg')?.addEventListener('click', async () => {
     model:            el('cfg-model-custom')?.value?.trim() || el('cfg-model')?.value || 'meta-llama/llama-3.1-8b-instruct:free',
     vaultPath:        el('cfg-vault')?.value?.trim()        || '',
     journalTime:      el('cfg-journal-time')?.value         || '08:00',
+    wakeHotkey:       el('cfg-hotkey')?.value?.trim()       || 'Alt+Space',
     startWithWindows: el('cfg-startup')?.checked            || false,
     voiceEnabled:     el('cfg-voice')?.checked              || false,
     voiceURI:         el('cfg-voice-select')?.value         || '',

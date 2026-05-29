@@ -11,6 +11,8 @@ const DEFAULTS = {
   voiceEnabled: false,
   voiceURI: '',
   groqKey: '',
+  wakeHotkey: 'Alt+Space',
+  briefingTime: '08:00',
 };
 
 const JOURNAL_PROMPTS = [

@@ -37,6 +37,8 @@ contextBridge.exposeInMainWorld('jarvis', {
   saveJournalEntry: (e) => ipcRenderer.invoke('journal:save', e),
 
   /* Push events from main */
-  onReminder:     (cb) => ipcRenderer.on('reminder:due',    (_, t) => cb(t)),
-  onJournalReady: (cb) => ipcRenderer.on('journal:ready',   (_, t) => cb(t)),
+  onReminder:     (cb) => ipcRenderer.on('reminder:due',       (_, t) => cb(t)),
+  onJournalReady: (cb) => ipcRenderer.on('journal:ready',      (_, t) => cb(t)),
+  onWakeWord:     (cb) => ipcRenderer.on('wake:word',          ()     => cb()),
+  onProactive:    (cb) => ipcRenderer.on('proactive:message',  (_, t) => cb(t)),
 });
