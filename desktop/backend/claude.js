@@ -98,6 +98,58 @@ class Claude {
     return s;
   }
 
+  /* ── OpenRouter request helper ── */
+  _post(messages, modelOverride) {
+    return fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this._cfg.apiKey}`,
+        'HTTP-Referer': 'https://github.com/OLuc-Dev/J.A.R.V.I.S-ACSM',
+        'X-Title': 'JARVIS Desktop',
+      },
+      body: JSON.stringify({
+        model: modelOverride || this._cfg.model,
+        max_tokens: 900,
+        messages,
+        stream: true,
+      }),
+    });
+  }
+
+  /* ── Live model catalog (public endpoint, no auth needed) ── */
+  async listModels() {
+    try {
+      const headers = {};
+      if (this._cfg.apiKey) headers['Authorization'] = `Bearer ${this._cfg.apiKey}`;
+      const res = await fetch('https://openrouter.ai/api/v1/models', { headers });
+      if (!res.ok) return { error: `Erro ${res.status}`, models: [] };
+      const j = await res.json();
+      const models = (j.data || []).map(m => ({
+        id:   m.id,
+        name: m.name || m.id,
+        ctx:  m.context_length || 0,
+        free: m.pricing &&
+              parseFloat(m.pricing.prompt) === 0 &&
+              parseFloat(m.pricing.completion) === 0,
+      }));
+      return { models };
+    } catch (err) {
+      return { error: err.message, models: [] };
+    }
+  }
+
+  /* Ordered list of free model IDs to try (most promising first) */
+  async _freeCandidates() {
+    const { models } = await this.listModels();
+    const free = (models || [])
+      .filter(m => m.free && /:free$/.test(m.id))
+      .sort((a, b) => b.ctx - a.ctx);
+    const known = free.filter(m => /llama-3\.[13]|deepseek|gemini|qwen|mistral|gemma/i.test(m.id));
+    const rest  = free.filter(m => !known.includes(m));
+    return [...known, ...rest].map(m => m.id);
+  }
+
   /* ── Ask Claude (streaming) ── */
   async ask(userMessage, vaultCtx, memoryCtx, onChunk) {
     const apiKey = this._cfg.apiKey;
@@ -111,21 +163,24 @@ class Claude {
       { role: 'user', content: userMessage },
     ];
 
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'HTTP-Referer': 'https://github.com/OLuc-Dev/J.A.R.V.I.S-ACSM',
-        'X-Title': 'JARVIS Desktop',
-      },
-      body: JSON.stringify({
-        model: this._cfg.model,
-        max_tokens: 900,
-        messages,
-        stream: true,
-      }),
-    });
+    let res = await this._post(messages);
+
+    /* Model unavailable → try working free models until one responds */
+    if (res.status === 404 || res.status === 400) {
+      const candidates = (await this._freeCandidates())
+        .filter(id => id !== this._cfg.model)
+        .slice(0, 5);
+      for (const id of candidates) {
+        const attempt = await this._post(messages, id);
+        if (attempt.ok) {
+          this._cfg.model = id;
+          this._saveConfig();
+          onChunk?.(`(modelo trocado para ${id})\n\n`);
+          res = attempt;
+          break;
+        }
+      }
+    }
 
     if (!res.ok) {
       const j = await res.json().catch(() => ({}));

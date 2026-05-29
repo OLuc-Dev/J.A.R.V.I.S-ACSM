@@ -5,7 +5,8 @@ Assistente pessoal com IA para Windows — roda na bandeja do sistema, aprende c
 ## Pré-requisitos
 
 - [Node.js 18+](https://nodejs.org)
-- Chave da API Anthropic (obtenha em [console.anthropic.com](https://console.anthropic.com))
+- Chave da API [OpenRouter](https://openrouter.ai/keys) — acesso a dezenas de modelos, incluindo vários **gratuitos**
+- (Opcional, para voz) Chave [Groq](https://console.groq.com/keys) — transcrição de fala grátis
 
 ## Instalação (desenvolvimento)
 
@@ -25,9 +26,21 @@ npm run build
 ## Configuração
 
 1. Abra JARVIS → aba **Configurações**
-2. Cole sua **Anthropic API Key** (`sk-ant-api03-…`)
-3. Defina seu nome, modelo preferido, e caminho do vault Obsidian
-4. Clique em **Salvar configurações**
+2. Cole sua **OpenRouter API Key** (`sk-or-…`)
+3. (Opcional) Cole sua **Groq API Key** (`gsk_…`) para falar por voz
+4. Escolha um modelo na lista (atualizada ao vivo do OpenRouter — os **gratuitos** vêm primeiro)
+5. Defina seu nome, caminho do vault Obsidian e preferências de voz
+6. Clique em **Salvar configurações**
+
+> O JARVIS busca a lista de modelos disponíveis em tempo real. Se o modelo
+> escolhido ficar indisponível, ele troca automaticamente por um gratuito que
+> esteja funcionando.
+
+## Voz
+
+- **JARVIS fala** (text-to-speech): ligue o toggle de voz nas Configurações. Usa as vozes do Windows — instale uma voz `pt-BR` em *Configurações do Windows → Hora e idioma → Fala*.
+- **JARVIS ouve** (speech-to-text): clique no microfone, fale, clique de novo. Usa Groq Whisper (grátis).
+- **Modo voz**: botão ◎ na barra de título abre o núcleo holográfico em tela cheia para conversa por voz.
 
 ## Funcionalidades
 

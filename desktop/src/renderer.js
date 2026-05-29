@@ -480,6 +480,49 @@ async function loadSettings() {
   /* Memory preview — fetch from main */
   const memPreview = document.getElementById('cfg-memory-preview');
   if (memPreview) memPreview.textContent = cfg.memoryFacts || '(nenhum fato memorizado ainda)';
+
+  /* Populate model list live from OpenRouter */
+  populateModels(cfg.model);
+}
+
+let _modelsLoaded = false;
+async function populateModels(currentModel) {
+  const sel = document.getElementById('cfg-model');
+  if (!sel || _modelsLoaded) { if (sel && currentModel) sel.value = currentModel; return; }
+
+  const res = await j.listModels();
+  const models = (res && res.models) || [];
+  if (!models.length) return; // keep static fallback options
+
+  const free = models.filter(m => m.free).sort((a, b) => a.name.localeCompare(b.name));
+  const paid = models.filter(m => !m.free &&
+    /(anthropic\/claude|openai\/gpt|google\/gemini)/i.test(m.id))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  sel.innerHTML = '';
+  const addGroup = (label, list) => {
+    if (!list.length) return;
+    const og = document.createElement('optgroup');
+    og.label = label;
+    for (const m of list) {
+      const o = document.createElement('option');
+      o.value = m.id;
+      o.textContent = m.free ? `${m.name} (grátis)` : m.name;
+      og.appendChild(o);
+    }
+    sel.appendChild(og);
+  };
+  addGroup(`── GRATUITOS ✓ (${free.length}) ──`, free);
+  addGroup('── Populares (pago) ──', paid);
+
+  // ensure current model is selectable even if not in filtered lists
+  if (currentModel && !sel.querySelector(`option[value="${CSS.escape(currentModel)}"]`)) {
+    const o = document.createElement('option');
+    o.value = currentModel; o.textContent = currentModel + ' (atual)';
+    sel.insertBefore(o, sel.firstChild);
+  }
+  if (currentModel) sel.value = currentModel;
+  _modelsLoaded = true;
 }
 
 document.getElementById('btn-browse-vault')?.addEventListener('click', async () => {

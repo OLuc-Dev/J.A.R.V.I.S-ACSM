@@ -93,6 +93,9 @@ function registerIPC() {
     return full;
   });
 
+  /* Models — live OpenRouter catalog */
+  ipcMain.handle('models:list', () => claude.listModels());
+
   /* Speech-to-text — Groq Whisper */
   ipcMain.handle('stt:transcribe', async (_, arrayBuffer) => {
     const cfg = claude.getConfig();
