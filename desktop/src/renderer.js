@@ -101,6 +101,7 @@ j.onDone(fullText => {
   currentMsg = null;
   setStatus('ONLINE');
   scrollFeed();
+  if (!/^Erro:/.test(clean)) speak(clean);
 });
 
 btnSend.addEventListener('click', sendMessage);
@@ -133,6 +134,123 @@ j.onReminder(task => {
 j.onJournalReady(prompt => {
   addMsg('jarvis', `📝 Hora do seu diário!\n${prompt}\nAbra a aba "Diário" para escrever.`);
 });
+
+/* ════════════════════ VOICE — TTS (falar) ════════════════════ */
+let voiceEnabled   = false;
+let selectedVoice  = '';   // voiceURI
+let availableVoices = [];
+
+function loadVoices() {
+  availableVoices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+  const sel = document.getElementById('cfg-voice-select');
+  if (!sel) return;
+  // keep first default option, repopulate the rest
+  sel.querySelectorAll('option:not(:first-child)').forEach(o => o.remove());
+  // pt voices first
+  const sorted = [...availableVoices].sort((a, b) => {
+    const ap = a.lang.startsWith('pt') ? 0 : 1;
+    const bp = b.lang.startsWith('pt') ? 0 : 1;
+    return ap - bp;
+  });
+  for (const v of sorted) {
+    const o = document.createElement('option');
+    o.value = v.voiceURI;
+    o.textContent = `${v.name} (${v.lang})`;
+    sel.appendChild(o);
+  }
+  if (selectedVoice) sel.value = selectedVoice;
+}
+
+if (window.speechSynthesis) {
+  window.speechSynthesis.onvoiceschanged = loadVoices;
+  loadVoices();
+}
+
+function pickVoice() {
+  if (!availableVoices.length) availableVoices = window.speechSynthesis.getVoices();
+  if (selectedVoice) {
+    const v = availableVoices.find(v => v.voiceURI === selectedVoice);
+    if (v) return v;
+  }
+  // fallback: first pt-BR / pt voice, else first voice
+  return availableVoices.find(v => v.lang === 'pt-BR')
+      || availableVoices.find(v => v.lang.startsWith('pt'))
+      || availableVoices[0]
+      || null;
+}
+
+function speak(text) {
+  if (!voiceEnabled || !window.speechSynthesis || !text) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  const v = pickVoice();
+  if (v) { u.voice = v; u.lang = v.lang; }
+  else u.lang = 'pt-BR';
+  u.rate = 1.02;
+  u.pitch = 1.0;
+  window.speechSynthesis.speak(u);
+}
+
+function stopSpeaking() {
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+}
+
+/* ════════════════════ VOICE — STT (ouvir) ════════════════════ */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+let listening   = false;
+const btnMic    = document.getElementById('btn-mic');
+
+if (SR) {
+  recognition = new SR();
+  recognition.lang           = 'pt-BR';
+  recognition.continuous     = false;
+  recognition.interimResults = true;
+
+  recognition.onstart = () => {
+    listening = true;
+    btnMic?.classList.add('listening');
+    setStatus('OUVINDO');
+    stopSpeaking();
+  };
+
+  recognition.onresult = e => {
+    let txt = '';
+    for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript;
+    chatInput.value = txt;
+    autoResize(chatInput);
+  };
+
+  recognition.onerror = e => {
+    listening = false;
+    btnMic?.classList.remove('listening');
+    setStatus('ONLINE');
+    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+      addMsg('jarvis', 'Permissão de microfone negada. Habilite o microfone do Windows para usar comando de voz.');
+    } else if (e.error === 'network') {
+      addMsg('jarvis', 'Reconhecimento de voz indisponível (sem serviço de fala). Você ainda pode digitar — JARVIS responde por voz normalmente.');
+    } else if (e.error === 'no-speech') {
+      setStatus('ONLINE');
+    }
+  };
+
+  recognition.onend = () => {
+    listening = false;
+    btnMic?.classList.remove('listening');
+    if (chatInput.value.trim()) { setStatus('ONLINE'); sendMessage(); }
+    else setStatus('ONLINE');
+  };
+
+  btnMic?.addEventListener('click', () => {
+    if (listening) { recognition.stop(); return; }
+    try { recognition.start(); } catch { /* already started */ }
+  });
+} else {
+  // No speech recognition available
+  btnMic?.addEventListener('click', () => {
+    addMsg('jarvis', 'Reconhecimento de voz não disponível neste ambiente.');
+  });
+}
 
 /* ════════════════════ TASKS ════════════════════ */
 async function loadTasks() {
@@ -253,6 +371,9 @@ async function loadSettings() {
   el('cfg-vault').value        = cfg.vaultPath   || '';
   el('cfg-journal-time').value = cfg.journalTime || '08:00';
   if (el('cfg-startup')) el('cfg-startup').checked = !!cfg.startWithWindows;
+  if (el('cfg-voice'))   el('cfg-voice').checked   = !!cfg.voiceEnabled;
+  loadVoices();
+  if (el('cfg-voice-select') && cfg.voiceURI) el('cfg-voice-select').value = cfg.voiceURI;
 
   /* Memory preview — fetch from main */
   const memPreview = document.getElementById('cfg-memory-preview');
@@ -271,15 +392,22 @@ document.getElementById('btn-save-cfg')?.addEventListener('click', async () => {
 
   const cfg = {
     userName:         el('cfg-name')?.value?.trim()         || '',
-    model:            el('cfg-model')?.value                || 'claude-opus-4-7',
+    model:            el('cfg-model')?.value                || 'google/gemini-2.0-flash-exp:free',
     vaultPath:        el('cfg-vault')?.value?.trim()        || '',
     journalTime:      el('cfg-journal-time')?.value         || '08:00',
     startWithWindows: el('cfg-startup')?.checked            || false,
+    voiceEnabled:     el('cfg-voice')?.checked              || false,
+    voiceURI:         el('cfg-voice-select')?.value         || '',
   };
 
   if (key) cfg.apiKey = key;
 
   await j.setConfig(cfg);
+
+  /* apply voice settings live */
+  voiceEnabled  = cfg.voiceEnabled;
+  selectedVoice = cfg.voiceURI;
+  if (voiceEnabled) speak('Voz ativada.');
 
   if (status) {
     status.textContent = '✓ Configuração salva.';
@@ -315,6 +443,8 @@ function esc(str) {
   setStatus('INICIALIZANDO');
   try {
     const cfg = await j.getConfig();
+    voiceEnabled  = !!cfg.voiceEnabled;
+    selectedVoice = cfg.voiceURI || '';
     if (!cfg.apiKey) {
       addMsg('jarvis', 'Olá. Para ativar inteligência completa, configure sua API key do OpenRouter em Configurações.');
     } else {

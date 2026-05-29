@@ -284,6 +284,21 @@ html, body {
 .btn-send svg { width: 14px; height: 14px; }
 .btn-send:hover { color: var(--accent); }
 
+.btn-mic {
+  background: none; border: none; cursor: pointer;
+  color: var(--t2); width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  transition: color .2s;
+  flex-shrink: 0;
+}
+.btn-mic svg { width: 15px; height: 15px; }
+.btn-mic:hover { color: var(--accent); }
+.btn-mic.listening {
+  color: #ff4d4d;
+  animation: micPulse 1s ease-in-out infinite;
+}
+@keyframes micPulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
 .chat-tools {
   display: flex;
   align-items: center;

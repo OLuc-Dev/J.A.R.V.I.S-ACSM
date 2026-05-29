@@ -8,6 +8,8 @@ const DEFAULTS = {
   journalTime: '08:00',
   startWithWindows: false,
   userName: '',
+  voiceEnabled: false,
+  voiceURI: '',
 };
 
 const JOURNAL_PROMPTS = [

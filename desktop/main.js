@@ -31,6 +31,12 @@ function createWindow() {
 
   mainWindow.loadFile(path.join(__dirname, 'src', 'index.html'));
 
+  /* Allow microphone + media for voice input */
+  mainWindow.webContents.session.setPermissionRequestHandler((wc, perm, cb) => {
+    cb(perm === 'media' || perm === 'audioCapture' || perm === 'microphone');
+  });
+  mainWindow.webContents.session.setPermissionCheckHandler(() => true);
+
   mainWindow.on('close', e => {
     e.preventDefault();
     mainWindow.hide();
