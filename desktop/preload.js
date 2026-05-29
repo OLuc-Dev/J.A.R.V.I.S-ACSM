@@ -10,6 +10,9 @@ contextBridge.exposeInMainWorld('jarvis', {
   onChunk: (cb) => ipcRenderer.on('chat:chunk', (_, t) => cb(t)),
   onDone:  (cb) => ipcRenderer.on('chat:done',  (_, t) => cb(t)),
 
+  /* Speech-to-text (Groq Whisper) */
+  transcribe: (buf) => ipcRenderer.invoke('stt:transcribe', buf),
+
   /* Tasks */
   listTasks:     ()   => ipcRenderer.invoke('tasks:list'),
   addTask:       (t)  => ipcRenderer.invoke('tasks:add', t),

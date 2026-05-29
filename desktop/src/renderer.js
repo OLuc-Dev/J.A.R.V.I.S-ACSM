@@ -202,7 +202,7 @@ function exitVoiceMode() {
   document.getElementById('voice-mode')?.classList.remove('active');
   if (core) core.stop();
   stopMicAnalyser();
-  if (listening && recognition) try { recognition.stop(); } catch {}
+  if (listening) stopRecording();
 }
 
 document.getElementById('btn-voice-mode')?.addEventListener('click', enterVoiceMode);
@@ -271,67 +271,85 @@ function stopSpeaking() {
   if (window.speechSynthesis) window.speechSynthesis.cancel();
 }
 
-/* ════════════════════ VOICE — STT (ouvir) ════════════════════ */
-const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let recognition = null;
-let listening   = false;
-const btnMic    = document.getElementById('btn-mic');
+/* ════════════════════ VOICE — STT (Groq Whisper) ════════════════════ */
+let listening = false;
+let mediaRecorder = null, recChunks = [], recStream = null;
+const btnMic = document.getElementById('btn-mic');
+const vmTalk = document.getElementById('vm-talk');
 
-if (SR) {
-  recognition = new SR();
-  recognition.lang           = 'pt-BR';
-  recognition.continuous     = false;
-  recognition.interimResults = true;
+function setListenUI(on) {
+  listening = on;
+  btnMic?.classList.toggle('listening', on);
+  vmTalk?.classList.toggle('listening', on);
+}
 
-  recognition.onstart = () => {
-    listening = true;
-    btnMic?.classList.add('listening');
-    document.getElementById('vm-talk')?.classList.add('listening');
-    setStatus('OUVINDO');
-    stopSpeaking();
-  };
+function vmSay(text) {
+  const vt = document.getElementById('vm-transcript');
+  if (vt && voiceModeOn) vt.textContent = text;
+}
 
-  recognition.onresult = e => {
-    let txt = '';
-    for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript;
-    chatInput.value = txt;
-    autoResize(chatInput);
-    const vt = document.getElementById('vm-transcript');
-    if (vt && voiceModeOn) vt.textContent = txt;
-  };
+async function startRecording() {
+  if (listening) return;
+  const cfg = await j.getConfig();
+  if (!cfg.groqKey) {
+    addMsg('jarvis', 'Para falar comigo, configure sua chave Groq (grátis) em Configurações → console.groq.com/keys');
+    vmSay('Configure a chave Groq nas Configurações.');
+    return;
+  }
+  try {
+    recStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch {
+    addMsg('jarvis', 'Não consegui acessar o microfone. Verifique as permissões do Windows.');
+    return;
+  }
+  stopSpeaking();
+  recChunks = [];
+  mediaRecorder = new MediaRecorder(recStream);
+  mediaRecorder.ondataavailable = e => { if (e.data.size) recChunks.push(e.data); };
+  mediaRecorder.onstop = onRecordingStop;
+  mediaRecorder.start();
+  setListenUI(true);
+  setStatus('OUVINDO');
+  vmSay('Ouvindo… (toque novamente para parar)');
+}
 
-  recognition.onerror = e => {
-    listening = false;
-    btnMic?.classList.remove('listening');
-    setStatus('ONLINE');
-    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
-      addMsg('jarvis', 'Permissão de microfone negada. Habilite o microfone do Windows para usar comando de voz.');
-    } else if (e.error === 'network') {
-      addMsg('jarvis', 'Reconhecimento de voz indisponível (sem serviço de fala). Você ainda pode digitar — JARVIS responde por voz normalmente.');
-    } else if (e.error === 'no-speech') {
+function stopRecording() {
+  if (mediaRecorder && listening) mediaRecorder.stop();
+  setListenUI(false);
+}
+
+async function onRecordingStop() {
+  if (recStream) recStream.getTracks().forEach(t => t.stop());
+  recStream = null;
+  const blob = new Blob(recChunks, { type: 'audio/webm' });
+  recChunks = [];
+  if (blob.size < 1500) { setStatus('ONLINE'); vmSay('Não ouvi nada. Toque em Falar e fale.'); return; }
+
+  setStatus('PROCESSANDO');
+  vmSay('Transcrevendo…');
+  try {
+    const buf = await blob.arrayBuffer();
+    const res = await j.transcribe(buf);
+    if (res && res.text) {
+      chatInput.value = res.text;
+      autoResize(chatInput);
+      vmSay(res.text);
+      sendMessage();
+    } else {
+      const msg = (res && res.error) || 'Não entendi o áudio.';
+      addMsg('jarvis', msg);
+      vmSay(msg);
       setStatus('ONLINE');
     }
-  };
-
-  recognition.onend = () => {
-    listening = false;
-    btnMic?.classList.remove('listening');
-    document.getElementById('vm-talk')?.classList.remove('listening');
-    if (chatInput.value.trim()) { setStatus('ONLINE'); sendMessage(); }
-    else setStatus('ONLINE');
-  };
-
-  const toggleListen = () => {
-    if (listening) { recognition.stop(); return; }
-    try { recognition.start(); } catch { /* already started */ }
-  };
-  btnMic?.addEventListener('click', toggleListen);
-  document.getElementById('vm-talk')?.addEventListener('click', toggleListen);
-} else {
-  const noSTT = () => addMsg('jarvis', 'Reconhecimento de voz não disponível neste ambiente.');
-  btnMic?.addEventListener('click', noSTT);
-  document.getElementById('vm-talk')?.addEventListener('click', noSTT);
+  } catch (err) {
+    addMsg('jarvis', `Erro na transcrição: ${err.message}`);
+    setStatus('ONLINE');
+  }
 }
+
+const toggleListen = () => (listening ? stopRecording() : startRecording());
+btnMic?.addEventListener('click', toggleListen);
+vmTalk?.addEventListener('click', toggleListen);
 
 /* ════════════════════ TASKS ════════════════════ */
 async function loadTasks() {
@@ -447,6 +465,8 @@ async function loadSettings() {
   const el = n => document.getElementById(n);
   el('cfg-key')?.setAttribute('placeholder', cfg.apiKey ? '••••••••' : 'sk-or-…');
   if (cfg.apiKey) el('cfg-key').value = '';
+  el('cfg-groq')?.setAttribute('placeholder', cfg.groqKey ? '••••••••' : 'gsk_…');
+  if (cfg.groqKey) el('cfg-groq').value = '';
   el('cfg-name').value         = cfg.userName    || '';
   el('cfg-model').value        = cfg.model       || 'claude-opus-4-7';
   el('cfg-vault').value        = cfg.vaultPath   || '';
@@ -469,6 +489,7 @@ document.getElementById('btn-browse-vault')?.addEventListener('click', async () 
 document.getElementById('btn-save-cfg')?.addEventListener('click', async () => {
   const el = n => document.getElementById(n);
   const key    = el('cfg-key')?.value?.trim();
+  const groq   = el('cfg-groq')?.value?.trim();
   const status = document.getElementById('cfg-status');
 
   const cfg = {
@@ -481,7 +502,8 @@ document.getElementById('btn-save-cfg')?.addEventListener('click', async () => {
     voiceURI:         el('cfg-voice-select')?.value         || '',
   };
 
-  if (key) cfg.apiKey = key;
+  if (key)  cfg.apiKey  = key;
+  if (groq) cfg.groqKey = groq;
 
   await j.setConfig(cfg);
 

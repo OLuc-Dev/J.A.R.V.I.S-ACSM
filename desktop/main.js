@@ -93,6 +93,34 @@ function registerIPC() {
     return full;
   });
 
+  /* Speech-to-text — Groq Whisper */
+  ipcMain.handle('stt:transcribe', async (_, arrayBuffer) => {
+    const cfg = claude.getConfig();
+    if (!cfg.groqKey) return { error: 'Configure sua chave Groq em Configurações.' };
+    try {
+      const form = new FormData();
+      const blob = new Blob([Buffer.from(arrayBuffer)], { type: 'audio/webm' });
+      form.append('file', blob, 'audio.webm');
+      form.append('model', 'whisper-large-v3-turbo');
+      form.append('language', 'pt');
+      form.append('response_format', 'json');
+
+      const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${cfg.groqKey}` },
+        body: form,
+      });
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        return { error: e.error?.message || `Erro ${res.status}` };
+      }
+      const j = await res.json();
+      return { text: (j.text || '').trim() };
+    } catch (err) {
+      return { error: err.message };
+    }
+  });
+
   /* Tasks */
   ipcMain.handle('tasks:list',     () => tasks.list());
   ipcMain.handle('tasks:add',      (_, t) => tasks.add(t));

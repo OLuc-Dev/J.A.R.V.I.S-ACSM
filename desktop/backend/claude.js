@@ -10,6 +10,7 @@ const DEFAULTS = {
   userName: '',
   voiceEnabled: false,
   voiceURI: '',
+  groqKey: '',
 };
 
 const JOURNAL_PROMPTS = [
