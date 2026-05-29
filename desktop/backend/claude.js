@@ -3,7 +3,7 @@ const path = require('path');
 
 const DEFAULTS = {
   apiKey:      '',
-  model:       'anthropic/claude-opus-4-5',
+  model:       'google/gemini-2.0-flash-exp:free',
   vaultPath:   '',
   journalTime: '08:00',
   startWithWindows: false,
@@ -118,7 +118,7 @@ class Claude {
       },
       body: JSON.stringify({
         model: this._cfg.model,
-        max_tokens: 1500,
+        max_tokens: 900,
         messages,
         stream: true,
       }),
