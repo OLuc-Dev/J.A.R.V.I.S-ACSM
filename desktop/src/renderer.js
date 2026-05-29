@@ -233,22 +233,31 @@ let voiceEnabled   = false;
 let selectedVoice  = '';   // voiceURI
 let availableVoices = [];
 
+/* Score a voice for quality — prefer natural/neural pt-BR voices */
+function voiceScore(v) {
+  let s = 0;
+  const name = v.name.toLowerCase();
+  if (v.lang === 'pt-BR') s += 100;
+  else if (v.lang.startsWith('pt')) s += 60;
+  if (/natural|neural|online|premium|enhanced/.test(name)) s += 40;
+  // Known pleasant pt-BR voices
+  if (/francisca|thalita|brenda|maria|luciana|google/.test(name)) s += 25;
+  if (/antonio|daniel|ricardo|felipe|google.*português/.test(name)) s += 15;
+  if (!v.localService) s += 10; // cloud voices usually sound better
+  return s;
+}
+
 function loadVoices() {
   availableVoices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
   const sel = document.getElementById('cfg-voice-select');
   if (!sel) return;
-  // keep first default option, repopulate the rest
   sel.querySelectorAll('option:not(:first-child)').forEach(o => o.remove());
-  // pt voices first
-  const sorted = [...availableVoices].sort((a, b) => {
-    const ap = a.lang.startsWith('pt') ? 0 : 1;
-    const bp = b.lang.startsWith('pt') ? 0 : 1;
-    return ap - bp;
-  });
+  const sorted = [...availableVoices].sort((a, b) => voiceScore(b) - voiceScore(a));
   for (const v of sorted) {
     const o = document.createElement('option');
     o.value = v.voiceURI;
-    o.textContent = `${v.name} (${v.lang})`;
+    const star = voiceScore(v) >= 100 ? ' ⭐' : '';
+    o.textContent = `${v.name} (${v.lang})${star}`;
     sel.appendChild(o);
   }
   if (selectedVoice) sel.value = selectedVoice;
@@ -265,28 +274,55 @@ function pickVoice() {
     const v = availableVoices.find(v => v.voiceURI === selectedVoice);
     if (v) return v;
   }
-  // fallback: first pt-BR / pt voice, else first voice
-  return availableVoices.find(v => v.lang === 'pt-BR')
-      || availableVoices.find(v => v.lang.startsWith('pt'))
-      || availableVoices[0]
-      || null;
+  // best-scoring voice automatically
+  const sorted = [...availableVoices].sort((a, b) => voiceScore(b) - voiceScore(a));
+  return sorted[0] || null;
 }
 
+/* Strip markdown/symbols so speech sounds natural */
+function cleanForSpeech(text) {
+  return text
+    .replace(/\[(MEMORIZAR|TAREFA):.*?\]/g, '')
+    .replace(/[*_`#>]/g, '')
+    .replace(/\(modelo.*?\)/gi, '')
+    .replace(/https?:\/\/\S+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/* Split into sentences for smoother, more natural delivery with pauses */
+function splitSentences(text) {
+  return text.match(/[^.!?…]+[.!?…]+|\S[^.!?…]*$/g) || [text];
+}
+
+let _speakQueue = [];
 function speak(text) {
-  if ((!voiceEnabled && !voiceModeOn) || !window.speechSynthesis || !text) return;
+  if ((!voiceEnabled && !voiceModeOn) || !window.speechSynthesis) return;
+  const clean = cleanForSpeech(text);
+  if (!clean) return;
   window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  const v = pickVoice();
-  if (v) { u.voice = v; u.lang = v.lang; }
+  _speakQueue = splitSentences(clean);
+  const voice = pickVoice();
+  setStatus('FALANDO');
+  _speakNext(voice);
+}
+
+function _speakNext(voice) {
+  if (!_speakQueue.length) { if (!listening) setStatus('ONLINE'); return; }
+  const chunk = _speakQueue.shift().trim();
+  if (!chunk) return _speakNext(voice);
+  const u = new SpeechSynthesisUtterance(chunk);
+  if (voice) { u.voice = voice; u.lang = voice.lang; }
   else u.lang = 'pt-BR';
-  u.rate = 1.02;
-  u.pitch = 1.0;
-  u.onstart = () => setStatus('FALANDO');
-  u.onend   = () => { if (!listening) setStatus('ONLINE'); };
+  u.rate  = 0.96;   // calmer, more thoughtful
+  u.pitch = 0.96;   // slightly warmer/lower
+  u.onend = () => _speakNext(voice);
+  u.onerror = () => _speakNext(voice);
   window.speechSynthesis.speak(u);
 }
 
 function stopSpeaking() {
+  _speakQueue = [];
   if (window.speechSynthesis) window.speechSynthesis.cancel();
 }
 
@@ -616,6 +652,18 @@ function esc(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+/* Warm, time-aware greeting */
+function greeting(name) {
+  const h = new Date().getHours();
+  const nm = name ? `, ${name}` : '';
+  let saud;
+  if (h < 5)       saud = `Ainda acordado${nm}? Estou aqui com você.`;
+  else if (h < 12) saud = `Bom dia${nm}. Como você amanheceu?`;
+  else if (h < 18) saud = `Boa tarde${nm}. Como está o seu dia até agora?`;
+  else             saud = `Boa noite${nm}. Como foi o seu dia?`;
+  return saud;
+}
+
 /* ── Init ── */
 (async () => {
   setStatus('INICIALIZANDO');
@@ -624,9 +672,9 @@ function esc(str) {
     voiceEnabled  = !!cfg.voiceEnabled;
     selectedVoice = cfg.voiceURI || '';
     if (!cfg.apiKey) {
-      addMsg('jarvis', 'Olá. Para ativar inteligência completa, configure sua API key do OpenRouter em Configurações.');
+      addMsg('jarvis', 'Olá. Para eu pensar de verdade com você, configure sua API key do OpenRouter em Configurações. Estarei aqui.');
     } else {
-      addMsg('jarvis', `Sistemas online. ${cfg.userName ? `Olá, ${cfg.userName}.` : 'Como posso ajudá-lo hoje?'}`);
+      addMsg('jarvis', greeting(cfg.userName));
     }
     setStatus('ONLINE');
   } catch {

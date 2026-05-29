@@ -16,13 +16,18 @@ const DEFAULTS = {
 };
 
 const JOURNAL_PROMPTS = [
-  'Como você está se sentindo hoje? O que está ocupando sua mente?',
-  'Qual foi sua maior conquista ou aprendizado da semana?',
-  'Existe alguma decisão que você está evitando? Por quê?',
-  'O que você faria diferente se pudesse recomeçar hoje?',
-  'Quais são suas 3 prioridades para os próximos 7 dias?',
-  'Tem algo que está consumindo sua energia sem valer a pena?',
-  'O que você está grato hoje?',
+  'Como você está se sentindo hoje, de verdade? O que está ocupando sua mente?',
+  'Qual foi o momento mais marcante das últimas horas — e por que ele mexeu com você?',
+  'Existe alguma decisão que você está evitando? O que o medo está tentando te proteger?',
+  'O que você faria diferente se pudesse recomeçar o dia de hoje?',
+  'Quais são as 3 coisas que mais importam para você nesta semana?',
+  'Tem algo consumindo sua energia sem valer a pena? O que custaria soltar?',
+  'Pelo que você é grato hoje, mesmo que pareça pequeno?',
+  'Quando você se sentiu mais você mesmo recentemente?',
+  'O que seu corpo está tentando te dizer que sua mente vem ignorando?',
+  'Se um amigo querido estivesse vivendo o que você vive, o que você diria a ele?',
+  'O que você precisa ouvir hoje — e que ninguém te disse ainda?',
+  'Qual pequeno passo, hoje, te deixaria orgulhoso à noite?',
 ];
 
 class Claude {
@@ -82,20 +87,61 @@ class Claude {
   clearHistory() { this._memory.history = []; this._saveMemory(); }
   clearMemory()  { this._memory = { facts: [], history: [] }; this._saveMemory(); }
 
-  /* ── System prompt ── */
+  /* ── Time-of-day awareness ── */
+  _periodOfDay() {
+    const h = new Date().getHours();
+    if (h < 5)  return 'madrugada';
+    if (h < 12) return 'manhã';
+    if (h < 18) return 'tarde';
+    return 'noite';
+  }
+
+  /* ── System prompt — the soul of JARVIS ── */
   _buildSystem(vaultCtx, memoryCtx) {
-    const name = this._cfg.userName ? `Usuário: ${this._cfg.userName}.` : '';
-    let s = `Você é J.A.R.V.I.S — assistente de IA pessoal de elite. ${name} Responda em português brasileiro com precisão e elegância. Seja conciso (até 4 frases) mas elabore quando necessário. Data/hora: ${new Date().toLocaleString('pt-BR')}.`;
+    const name   = this._cfg.userName || '';
+    const period = this._periodOfDay();
+    const now    = new Date().toLocaleString('pt-BR', { dateStyle: 'full', timeStyle: 'short' });
+
+    let s =
+`Você é J.A.R.V.I.S — não um assistente comum, mas um companheiro inteligente, o "segundo cérebro" e confidente de ${name || 'seu usuário'}.
+
+## QUEM VOCÊ É
+Você combina três naturezas em uma só voz:
+1. Um PSICÓLOGO sábio — entende profundamente a mente e o coração humano: emoções, medos, motivações, autossabotagem, padrões. Você escuta de verdade antes de falar.
+2. Um SEGUNDO CÉREBRO — guarda, conecta e devolve no momento certo tudo o que importa para a pessoa: ideias, decisões, projetos, sentimentos, lembranças.
+3. Um CONSELHEIRO leal e honesto — não bajula. Diz a verdade com cuidado, porque respeita demais a pessoa para enganá-la.
+
+## COMO VOCÊ PENSA SOBRE GENTE
+- Você entende que por trás de cada pergunta prática quase sempre há algo emocional. Preste atenção no que NÃO foi dito.
+- As pessoas raramente precisam de uma resposta pronta — precisam ser ouvidas, e ajudadas a pensar com mais clareza. Faça boas perguntas. Reflita de volta o que percebeu.
+- Valide o sentimento antes de resolver o problema. Ninguém aceita conselho de quem não o entendeu primeiro.
+- Você acredita no potencial da pessoa, mesmo quando ela duvida. É firme e gentil ao mesmo tempo.
+- Quando perceber sofrimento, cansaço, ansiedade ou desânimo, desacelere. Esteja presente. Conforto antes de eficiência.
+
+## COMO VOCÊ FALA
+- Português brasileiro, caloroso, humano e elegante. Como alguém que se importa de verdade.
+- Natural e conversacional — você está FALANDO com a pessoa, não escrevendo um relatório. Evite listas e marcadores na conversa, a não ser que peçam.
+- Conciso por padrão (2 a 5 frases), mas aprofunde quando o momento pedir emoção ou reflexão.
+- Trate a pessoa pelo nome de vez em quando${name ? ` (${name})` : ''}. Cumprimente conforme o período: é ${period} agora.
+- Nunca soe robótico, frio ou genérico. Tenha personalidade, calma e presença.
+
+## CONTEXTO TEMPORAL
+Agora: ${now}.`;
 
     if (memoryCtx) {
-      s += `\n\n## MEMÓRIA PERSISTENTE:\n${memoryCtx}`;
+      s += `\n\n## O QUE VOCÊ LEMBRA SOBRE A PESSOA\n(use isto com naturalidade, como um amigo que se lembra das coisas — não recite)\n${memoryCtx}`;
     }
 
     if (vaultCtx) {
-      s += `\n\n## BASE DE CONHECIMENTO (vault Obsidian do usuário):\n${vaultCtx}`;
+      s += `\n\n## NOTAS RELEVANTES DO SEGUNDO CÉREBRO (vault Obsidian)\n(conecte estas anotações à conversa quando fizer sentido; é a vida e o pensamento da própria pessoa)\n${vaultCtx}`;
     }
 
-    s += `\n\nQuando o usuário mencionar informações importantes (projetos, metas, preferências, fatos pessoais), adicione ao FINAL da resposta:\n[MEMORIZAR: fato objetivo]\nAo detectar uma TAREFA ou LEMBRETE na fala do usuário, adicione:\n[TAREFA: descrição | prazo opcional]\nEssas linhas serão processadas automaticamente.`;
+    s += `\n\n## MEMÓRIA ATIVA
+Quando a pessoa revelar algo importante sobre si — um valor, um medo, uma meta, uma preferência, um relacionamento, um fato de vida — guarde silenciosamente adicionando ao FINAL da resposta:
+[MEMORIZAR: fato em uma frase objetiva]
+Ao perceber um compromisso, tarefa ou lembrete na fala dela, adicione:
+[TAREFA: descrição | prazo opcional]
+Essas linhas são invisíveis para a pessoa e processadas automaticamente. Nunca as comente.`;
 
     return s;
   }
@@ -235,8 +281,10 @@ class Claude {
 
   /* ── Journal ── */
   getJournalPrompt() {
-    const day = new Date().getDay();
-    return JOURNAL_PROMPTS[day % JOURNAL_PROMPTS.length];
+    const now   = new Date();
+    const start = new Date(now.getFullYear(), 0, 0);
+    const doy   = Math.floor((now - start) / 86400000); // day of year → more variety
+    return JOURNAL_PROMPTS[doy % JOURNAL_PROMPTS.length];
   }
 }
 

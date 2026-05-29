@@ -24,11 +24,11 @@ class JarvisCore {
 
     // palette (golden JARVIS)
     this.colors = {
-      idle:      { h: 38,  s: 95, l: 58 },  // amber/gold
-      listening: { h: 190, s: 95, l: 60 },  // cyan
-      thinking:  { h: 28,  s: 100, l: 56 }, // hot orange
-      speaking:  { h: 45,  s: 100, l: 62 }, // bright gold
-      alert:     { h: 0,   s: 90, l: 58 },  // red
+      idle:      { h: 38,  s: 92,  l: 56 },  // amber/gold
+      listening: { h: 50,  s: 100, l: 70 },  // bright light gold (awake)
+      thinking:  { h: 26,  s: 100, l: 54 },  // hot orange
+      speaking:  { h: 45,  s: 100, l: 64 },  // bright gold
+      alert:     { h: 0,   s: 90,  l: 58 },  // red
     };
     this._curColor = { ...this.colors.idle };
 

@@ -7,14 +7,16 @@
   --border:    rgba(255,255,255,0.06);
   --border-hi: rgba(255,255,255,0.11);
 
-  --t0: #efefef;
-  --t1: #8e8e8e;
-  --t2: #4a4a4a;
+  --t0: #f2efe9;
+  --t1: #9a948a;
+  --t2: #524d45;
 
-  --accent:     #4d9de0;
-  --accent-dim: rgba(77,157,224,0.12);
-  --danger:     #e05555;
-  --success:    #3dba6a;
+  --accent:      #e6b45a;
+  --accent-2:    #ffd98a;
+  --accent-dim:  rgba(230,180,90,0.12);
+  --accent-glow: rgba(230,180,90,0.30);
+  --danger:      #e05f5f;
+  --success:     #4ec98a;
 
   --f-ui:   'Space Grotesk', system-ui, sans-serif;
   --f-mono: 'Space Mono', 'Courier New', monospace;
@@ -29,7 +31,10 @@
 
 html, body {
   width: 100vw; height: 100vh;
-  background: var(--bg);
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(230,180,90,0.06) 0%, transparent 55%),
+    radial-gradient(ellipse at 50% 120%, rgba(230,180,90,0.03) 0%, transparent 50%),
+    var(--bg);
   color: var(--t0);
   font-family: var(--f-ui);
   overflow: hidden;
@@ -62,7 +67,10 @@ html, body {
   color: var(--t1);
 }
 
-.tb-j { color: var(--accent); }
+.tb-j {
+  color: var(--accent);
+  text-shadow: 0 0 12px var(--accent-glow);
+}
 
 .tb-status {
   font-family: var(--f-mono);
@@ -219,8 +227,9 @@ html, body {
 
 .msg--jarvis .msg-text {
   color: var(--t0);
-  border-left: 1px solid rgba(77,157,224,0.3);
-  padding-left: .8rem;
+  border-left: 2px solid var(--accent);
+  box-shadow: -1px 0 12px -4px var(--accent-glow);
+  padding-left: .9rem;
 }
 
 .msg--user .msg-text {
@@ -256,7 +265,10 @@ html, body {
   transition: border-color .2s;
 }
 
-.chat-input-shell:focus-within { border-color: rgba(77,157,224,0.4); }
+.chat-input-shell:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 16px -6px var(--accent-glow);
+}
 
 .chat-input {
   flex: 1;
@@ -337,7 +349,7 @@ html, body {
   transition: border-color .2s;
 }
 
-.task-input:focus { border-color: rgba(77,157,224,0.4); }
+.task-input:focus { border-color: var(--accent); }
 .task-input::placeholder { color: var(--t2); }
 
 .task-date {
@@ -411,7 +423,7 @@ html, body {
   font-size: .72rem;
   line-height: 1.8;
   color: var(--accent);
-  border-left: 2px solid rgba(77,157,224,0.3);
+  border-left: 2px solid var(--accent);
   padding-left: .8rem;
   min-height: 1.5rem;
 }
@@ -425,7 +437,7 @@ html, body {
   transition: border-color .2s;
 }
 
-.journal-editor:focus { border-color: rgba(77,157,224,0.4); }
+.journal-editor:focus { border-color: var(--accent); }
 
 .journal-actions { display: flex; align-items: center; gap: 1rem; flex-shrink: 0; }
 .journal-status { font-family: var(--f-mono); font-size: .55rem; color: var(--success); }
@@ -496,7 +508,7 @@ html, body {
   transition: border-color .2s; appearance: none;
 }
 
-.sf-input:focus { border-color: rgba(77,157,224,0.4); }
+.sf-input:focus { border-color: var(--accent); }
 .sf-input::placeholder { color: var(--t2); }
 .sf-input--sm { width: 8rem; }
 .sf-input--flex { flex: 1; }
@@ -634,3 +646,41 @@ html, body {
   transition: background .15s, color .15s;
 }
 .vm-exit:hover { background: var(--s3); color: var(--t0); }
+
+/* ════════════════════ POLISH ════════════════════ */
+/* Elegant scrollbars */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(230,180,90,0.14);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(230,180,90,0.28); }
+
+/* Voice-mode status glow + gradient text */
+.vm-status {
+  background: linear-gradient(90deg, var(--accent), var(--accent-2), var(--accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 24px var(--accent-glow);
+}
+
+/* Smoother transition when entering voice mode */
+.voice-mode.active { animation: vmFade .5s var(--ease); }
+
+/* Subtle breathing glow behind the fullscreen core */
+.vm-core {
+  filter: drop-shadow(0 0 40px var(--accent-glow));
+}
+
+/* Accent selection */
+::selection { background: rgba(230,180,90,0.25); color: var(--t0); }
+
+/* Send + mic buttons get a soft glow on hover */
+.btn-send:hover, .btn-mic:hover {
+  filter: drop-shadow(0 0 6px var(--accent-glow));
+}
+
+/* Nav active item subtle glow */
+.nav-item.active svg { filter: drop-shadow(0 0 8px var(--accent-glow)); }
