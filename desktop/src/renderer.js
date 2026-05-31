@@ -228,22 +228,22 @@ document.getElementById('btn-voice-mode')?.addEventListener('click', enterVoiceM
 document.getElementById('vm-exit')?.addEventListener('click', exitVoiceMode);
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && voiceModeOn) exitVoiceMode(); });
 
-/* ════════════════════ VOICE — TTS (falar) ════════════════════ */
-let voiceEnabled   = false;
-let selectedVoice  = '';   // voiceURI
+/* ════════════════════ VOICE — TTS ════════════════════ */
+let voiceEnabled    = false;
+let selectedVoice   = '';     // voiceURI (browser fallback)
 let availableVoices = [];
+let _elEnabled      = false;  // true when ElevenLabs key is configured
 
-/* Score a voice for quality — prefer natural/neural pt-BR voices */
+/* ── Browser TTS helpers (fallback) ── */
 function voiceScore(v) {
   let s = 0;
   const name = v.name.toLowerCase();
   if (v.lang === 'pt-BR') s += 100;
   else if (v.lang.startsWith('pt')) s += 60;
   if (/natural|neural|online|premium|enhanced/.test(name)) s += 40;
-  // Known pleasant pt-BR voices
   if (/francisca|thalita|brenda|maria|luciana|google/.test(name)) s += 25;
   if (/antonio|daniel|ricardo|felipe|google.*português/.test(name)) s += 15;
-  if (!v.localService) s += 10; // cloud voices usually sound better
+  if (!v.localService) s += 10;
   return s;
 }
 
@@ -274,9 +274,7 @@ function pickVoice() {
     const v = availableVoices.find(v => v.voiceURI === selectedVoice);
     if (v) return v;
   }
-  // best-scoring voice automatically
-  const sorted = [...availableVoices].sort((a, b) => voiceScore(b) - voiceScore(a));
-  return sorted[0] || null;
+  return [...availableVoices].sort((a, b) => voiceScore(b) - voiceScore(a))[0] || null;
 }
 
 /* Strip markdown/symbols so speech sounds natural */
@@ -290,22 +288,68 @@ function cleanForSpeech(text) {
     .trim();
 }
 
-/* Split into sentences for smoother, more natural delivery with pauses */
 function splitSentences(text) {
   return text.match(/[^.!?…]+[.!?…]+|\S[^.!?…]*$/g) || [text];
 }
 
-let _speakQueue = [];
-function speak(text) {
-  if ((!voiceEnabled && !voiceModeOn) || !window.speechSynthesis) return;
-  const clean = cleanForSpeech(text);
-  if (!clean) return;
-  window.speechSynthesis.cancel();
-  _speakQueue = splitSentences(clean);
-  const voice = pickVoice();
-  setStatus('FALANDO');
-  _speakNext(voice);
+/* ── ElevenLabs TTS ── */
+let _elAudio  = null;
+let _elQueue  = [];
+let _elBusy   = false;
+
+function _elChunk(text, maxLen = 1800) {
+  if (text.length <= maxLen) return [text];
+  const chunks = [];
+  let cur = '';
+  for (const s of (splitSentences(text) || [text])) {
+    if (cur.length + s.length > maxLen && cur) { chunks.push(cur.trim()); cur = s; }
+    else cur += (cur ? ' ' : '') + s;
+  }
+  if (cur.trim()) chunks.push(cur.trim());
+  return chunks;
 }
+
+async function _elPlayNext() {
+  if (_elBusy || !_elQueue.length) return;
+  const chunk = _elQueue.shift();
+  if (!chunk.trim()) { _elPlayNext(); return; }
+  _elBusy = true;
+
+  try {
+    const result = await j.speakEL(chunk);
+    if (result && result.audio) {
+      const bytes = Uint8Array.from(atob(result.audio), c => c.charCodeAt(0));
+      const blob  = new Blob([bytes], { type: 'audio/mpeg' });
+      const url   = URL.createObjectURL(blob);
+      _elAudio = new Audio(url);
+      _elAudio.onended = () => {
+        URL.revokeObjectURL(url);
+        _elAudio = null;
+        _elBusy  = false;
+        if (_elQueue.length) _elPlayNext();
+        else if (!listening) setStatus('ONLINE');
+      };
+      _elAudio.onerror = () => {
+        URL.revokeObjectURL(url);
+        _elAudio = null;
+        _elBusy  = false;
+        _elPlayNext();
+      };
+      _elAudio.play().catch(() => { _elBusy = false; _elPlayNext(); });
+    } else {
+      _elBusy = false;
+      if (_elQueue.length) _elPlayNext();
+      else if (!listening) setStatus('ONLINE');
+    }
+  } catch {
+    _elBusy = false;
+    if (_elQueue.length) _elPlayNext();
+    else if (!listening) setStatus('ONLINE');
+  }
+}
+
+/* ── Browser TTS queue ── */
+let _speakQueue = [];
 
 function _speakNext(voice) {
   if (!_speakQueue.length) { if (!listening) setStatus('ONLINE'); return; }
@@ -314,14 +358,36 @@ function _speakNext(voice) {
   const u = new SpeechSynthesisUtterance(chunk);
   if (voice) { u.voice = voice; u.lang = voice.lang; }
   else u.lang = 'pt-BR';
-  u.rate  = 0.96;   // calmer, more thoughtful
-  u.pitch = 0.96;   // slightly warmer/lower
-  u.onend = () => _speakNext(voice);
+  u.rate  = 0.94;
+  u.pitch = 0.93;
+  u.onend   = () => _speakNext(voice);
   u.onerror = () => _speakNext(voice);
   window.speechSynthesis.speak(u);
 }
 
+/* ── Main speak entry point ── */
+function speak(text) {
+  if (!voiceEnabled && !voiceModeOn) return;
+  const clean = cleanForSpeech(text);
+  if (!clean) return;
+  stopSpeaking();
+  setStatus('FALANDO');
+
+  if (_elEnabled) {
+    _elQueue = _elChunk(clean);
+    _elBusy  = false;
+    _elPlayNext();
+  } else {
+    if (!window.speechSynthesis) return;
+    _speakQueue = splitSentences(clean);
+    _speakNext(pickVoice());
+  }
+}
+
 function stopSpeaking() {
+  _elQueue = [];
+  _elBusy  = false;
+  if (_elAudio) { try { _elAudio.pause(); } catch {} _elAudio = null; }
   _speakQueue = [];
   if (window.speechSynthesis) window.speechSynthesis.cancel();
 }
@@ -522,6 +588,10 @@ async function loadSettings() {
   if (cfg.apiKey) el('cfg-key').value = '';
   el('cfg-groq')?.setAttribute('placeholder', cfg.groqKey ? '••••••••' : 'gsk_…');
   if (cfg.groqKey) el('cfg-groq').value = '';
+  el('cfg-elevenlabs')?.setAttribute('placeholder', cfg.elevenlabsKey ? '••••••••' : 'sk_…');
+  if (cfg.elevenlabsKey) el('cfg-elevenlabs').value = '';
+  if (el('cfg-el-voice') && cfg.elevenlabsVoiceId) el('cfg-el-voice').value = cfg.elevenlabsVoiceId;
+  _elEnabled = !!cfg.elevenlabsKey;
   el('cfg-name').value         = cfg.userName    || '';
   el('cfg-model').value        = cfg.model       || 'meta-llama/llama-3.1-8b-instruct:free';
   if (el('cfg-model-custom')) el('cfg-model-custom').value = '';
@@ -590,28 +660,33 @@ document.getElementById('btn-save-cfg')?.addEventListener('click', async () => {
   const el = n => document.getElementById(n);
   const key    = el('cfg-key')?.value?.trim();
   const groq   = el('cfg-groq')?.value?.trim();
+  const elKey  = el('cfg-elevenlabs')?.value?.trim();
   const status = document.getElementById('cfg-status');
 
   const cfg = {
-    userName:         el('cfg-name')?.value?.trim()         || '',
-    model:            el('cfg-model-custom')?.value?.trim() || el('cfg-model')?.value || 'meta-llama/llama-3.1-8b-instruct:free',
-    vaultPath:        el('cfg-vault')?.value?.trim()        || '',
-    journalTime:      el('cfg-journal-time')?.value         || '08:00',
-    wakeHotkey:       el('cfg-hotkey')?.value?.trim()       || 'Alt+Space',
-    startWithWindows: el('cfg-startup')?.checked            || false,
-    voiceEnabled:     el('cfg-voice')?.checked              || false,
-    voiceURI:         el('cfg-voice-select')?.value         || '',
+    userName:            el('cfg-name')?.value?.trim()         || '',
+    model:               el('cfg-model-custom')?.value?.trim() || el('cfg-model')?.value || 'meta-llama/llama-3.1-8b-instruct:free',
+    vaultPath:           el('cfg-vault')?.value?.trim()        || '',
+    journalTime:         el('cfg-journal-time')?.value         || '08:00',
+    wakeHotkey:          el('cfg-hotkey')?.value?.trim()       || 'Alt+Space',
+    startWithWindows:    el('cfg-startup')?.checked            || false,
+    voiceEnabled:        el('cfg-voice')?.checked              || false,
+    voiceURI:            el('cfg-voice-select')?.value         || '',
+    elevenlabsVoiceId:   el('cfg-el-voice')?.value             || 'onwK4e9ZLuTAKqWW03F9',
   };
 
-  if (key)  cfg.apiKey  = key;
-  if (groq) cfg.groqKey = groq;
+  if (key)   cfg.apiKey        = key;
+  if (groq)  cfg.groqKey       = groq;
+  if (elKey) cfg.elevenlabsKey = elKey;
 
   await j.setConfig(cfg);
 
   /* apply voice settings live */
   voiceEnabled  = cfg.voiceEnabled;
   selectedVoice = cfg.voiceURI;
-  if (voiceEnabled) speak('Voz ativada.');
+  if (elKey) _elEnabled = true;
+  const testPhrase = _elEnabled ? 'Voz humana ativada.' : 'Voz ativada.';
+  if (voiceEnabled) speak(testPhrase);
 
   if (status) {
     status.textContent = '✓ Configuração salva.';
@@ -671,6 +746,7 @@ function greeting(name) {
     const cfg = await j.getConfig();
     voiceEnabled  = !!cfg.voiceEnabled;
     selectedVoice = cfg.voiceURI || '';
+    _elEnabled    = !!cfg.elevenlabsKey;
     if (!cfg.apiKey) {
       addMsg('jarvis', 'Olá. Para eu pensar de verdade com você, configure sua API key do OpenRouter em Configurações. Estarei aqui.');
     } else {

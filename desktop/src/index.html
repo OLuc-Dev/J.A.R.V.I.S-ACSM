@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com;">
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; media-src 'self' blob:;">
   <title>J.A.R.V.I.S</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
@@ -143,6 +143,12 @@
           </div>
 
           <div class="sf-group">
+            <label class="sf-label">ELEVENLABS API KEY (voz humana)</label>
+            <input class="sf-input" id="cfg-elevenlabs" type="password" placeholder="sk_…"/>
+            <p class="sf-hint">Voz ultra-realista em português. Plano gratuito: 10.000 caracteres/mês. Crie conta em elevenlabs.io</p>
+          </div>
+
+          <div class="sf-group">
             <label class="sf-label">SEU NOME</label>
             <input class="sf-input" id="cfg-name" type="text" placeholder="Como JARVIS deve te chamar"/>
           </div>
@@ -213,11 +219,25 @@
           </div>
 
           <div class="sf-group">
-            <label class="sf-label">VOZ (idioma)</label>
+            <label class="sf-label">VOZ ELEVENLABS (humana) ⭐</label>
+            <select class="sf-input sf-select" id="cfg-el-voice">
+              <option value="onwK4e9ZLuTAKqWW03F9">Daniel — masculino, maduro, caloroso ⭐</option>
+              <option value="TxGEqnHWrfWFTfGW9XjX">Josh — masculino, profundo e quente</option>
+              <option value="ErXwobaYiN019PkySvjV">Antoni — masculino, versátil</option>
+              <option value="N2lVS1w4EtoT3dr4eOWO">Callum — masculino, intenso</option>
+              <option value="ODq5zmih8GrVes37Dy39">Patrick — masculino, firme</option>
+              <option value="XB0fDUnXU5powFXDhCwa">Charlotte — feminino, caloroso</option>
+              <option value="21m00Tcm4TlvDq8ikWAM">Rachel — feminino, claro e natural</option>
+            </select>
+            <p class="sf-hint">Modelo multilingual v2 — excelente pronúncia em português brasileiro. Requer chave ElevenLabs acima.</p>
+          </div>
+
+          <div class="sf-group">
+            <label class="sf-label">VOZ DO SISTEMA (fallback)</label>
             <select class="sf-input sf-select" id="cfg-voice-select">
               <option value="">(voz padrão do sistema)</option>
             </select>
-            <p class="sf-hint">Para vozes em português, instale-as em Configurações do Windows → Hora e idioma → Fala.</p>
+            <p class="sf-hint">Usada somente se ElevenLabs não estiver configurado. Para pt-BR, instale em: Configurações → Hora e idioma → Fala.</p>
           </div>
 
           <div class="sf-sep"></div>

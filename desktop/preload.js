@@ -13,6 +13,9 @@ contextBridge.exposeInMainWorld('jarvis', {
   /* Speech-to-text (Groq Whisper) */
   transcribe: (buf) => ipcRenderer.invoke('stt:transcribe', buf),
 
+  /* Text-to-speech (ElevenLabs) */
+  speakEL: (text) => ipcRenderer.invoke('tts:speak', text),
+
   /* Models */
   listModels: () => ipcRenderer.invoke('models:list'),
 

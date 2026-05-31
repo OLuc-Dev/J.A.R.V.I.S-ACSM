@@ -164,6 +164,36 @@ function registerIPC() {
   /* Journal */
   ipcMain.handle('journal:prompt', () => claude.getJournalPrompt());
   ipcMain.handle('journal:save',   (_, entry) => vault.saveJournalEntry(entry));
+
+  /* Text-to-speech — ElevenLabs (human voice) */
+  ipcMain.handle('tts:speak', async (_, text) => {
+    const cfg = claude.getConfig();
+    if (!cfg.elevenlabsKey) return { error: 'no_key' };
+    const voiceId = cfg.elevenlabsVoiceId || 'onwK4e9ZLuTAKqWW03F9';
+    try {
+      const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+        method: 'POST',
+        headers: {
+          'xi-api-key': cfg.elevenlabsKey,
+          'Content-Type': 'application/json',
+          'Accept': 'audio/mpeg',
+        },
+        body: JSON.stringify({
+          text,
+          model_id: 'eleven_multilingual_v2',
+          voice_settings: { stability: 0.5, similarity_boost: 0.80, style: 0.0, use_speaker_boost: true },
+        }),
+      });
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        return { error: e.detail?.message || `Erro ${res.status}` };
+      }
+      const buf = Buffer.from(await res.arrayBuffer());
+      return { audio: buf.toString('base64') };
+    } catch (err) {
+      return { error: err.message };
+    }
+  });
 }
 
 /* ── Notifications ── */
