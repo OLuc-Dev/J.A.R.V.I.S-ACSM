@@ -165,34 +165,66 @@ function registerIPC() {
   ipcMain.handle('journal:prompt', () => claude.getJournalPrompt());
   ipcMain.handle('journal:save',   (_, entry) => vault.saveJournalEntry(entry));
 
-  /* Text-to-speech — ElevenLabs (human voice) */
+  /* Text-to-speech — Azure Neural (primary) → ElevenLabs (fallback) */
   ipcMain.handle('tts:speak', async (_, text) => {
     const cfg = claude.getConfig();
-    if (!cfg.elevenlabsKey) return { error: 'no_key' };
-    const voiceId = cfg.elevenlabsVoiceId || 'onwK4e9ZLuTAKqWW03F9';
-    try {
-      const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-        method: 'POST',
-        headers: {
-          'xi-api-key': cfg.elevenlabsKey,
-          'Content-Type': 'application/json',
-          'Accept': 'audio/mpeg',
-        },
-        body: JSON.stringify({
-          text,
-          model_id: 'eleven_turbo_v2_5',
-          voice_settings: { stability: 0.5, similarity_boost: 0.75, style: 0.0, use_speaker_boost: true },
-        }),
-      });
-      if (!res.ok) {
-        const e = await res.json().catch(() => ({}));
-        return { error: e.detail?.message || `Erro ${res.status}` };
+
+    /* ── Azure Cognitive Services TTS (preferred) ── */
+    if (cfg.azureKey) {
+      const region = cfg.azureRegion || 'brazilsouth';
+      const voice  = cfg.azureVoice  || 'pt-BR-AntonioNeural';
+      const safe   = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      const ssml   = `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='pt-BR'><voice name='${voice}'>${safe}</voice></speak>`;
+      try {
+        const res = await fetch(`https://${region}.tts.speech.microsoft.com/cognitiveservices/v1`, {
+          method: 'POST',
+          headers: {
+            'Ocp-Apim-Subscription-Key': cfg.azureKey,
+            'Content-Type': 'application/ssml+xml',
+            'X-Microsoft-OutputFormat': 'audio-24khz-96kbitrate-mono-mp3',
+          },
+          body: ssml,
+        });
+        if (!res.ok) {
+          const msg = await res.text().catch(() => '');
+          return { error: `Azure ${res.status}: ${msg.slice(0, 120)}` };
+        }
+        const buf = Buffer.from(await res.arrayBuffer());
+        return { audio: buf.toString('base64') };
+      } catch (err) {
+        return { error: err.message };
       }
-      const buf = Buffer.from(await res.arrayBuffer());
-      return { audio: buf.toString('base64') };
-    } catch (err) {
-      return { error: err.message };
     }
+
+    /* ── ElevenLabs (fallback) ── */
+    if (cfg.elevenlabsKey) {
+      const voiceId = cfg.elevenlabsVoiceId || 'pNInz6obpgDQGcFmaJgB';
+      try {
+        const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+          method: 'POST',
+          headers: {
+            'xi-api-key': cfg.elevenlabsKey,
+            'Content-Type': 'application/json',
+            'Accept': 'audio/mpeg',
+          },
+          body: JSON.stringify({
+            text,
+            model_id: 'eleven_turbo_v2_5',
+            voice_settings: { stability: 0.5, similarity_boost: 0.75, style: 0.0, use_speaker_boost: true },
+          }),
+        });
+        if (!res.ok) {
+          const e = await res.json().catch(() => ({}));
+          return { error: e.detail?.message || `Erro ${res.status}` };
+        }
+        const buf = Buffer.from(await res.arrayBuffer());
+        return { audio: buf.toString('base64') };
+      } catch (err) {
+        return { error: err.message };
+      }
+    }
+
+    return { error: 'no_key' };
   });
 }
 

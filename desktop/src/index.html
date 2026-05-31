@@ -143,9 +143,38 @@
           </div>
 
           <div class="sf-group">
-            <label class="sf-label">ELEVENLABS API KEY (voz humana)</label>
+            <label class="sf-label">AZURE SPEECH KEY (voz neural — recomendado)</label>
+            <input class="sf-input" id="cfg-azure-key" type="password" placeholder="cole sua chave aqui…"/>
+            <p class="sf-hint">Vozes neurais pt-BR ultra-naturais. Grátis: 500.000 chars/mês. Crie em portal.azure.com → "Speech" → F0 (gratuito).</p>
+          </div>
+
+          <div class="sf-group">
+            <label class="sf-label">REGIÃO AZURE</label>
+            <select class="sf-input sf-select" id="cfg-azure-region">
+              <option value="brazilsouth">Brazil South — São Paulo (menor latência)</option>
+              <option value="eastus">East US</option>
+              <option value="westeurope">West Europe</option>
+              <option value="eastasia">East Asia</option>
+            </select>
+          </div>
+
+          <div class="sf-group">
+            <label class="sf-label">VOZ AZURE (pt-BR neural)</label>
+            <select class="sf-input sf-select" id="cfg-azure-voice">
+              <option value="pt-BR-AntonioNeural">Antonio — masculino, calmo e claro ⭐</option>
+              <option value="pt-BR-DonatoNeural">Donato — masculino, caloroso e profundo</option>
+              <option value="pt-BR-FabioNeural">Fabio — masculino, expressivo</option>
+              <option value="pt-BR-HumbertoNeural">Humberto — masculino, sério</option>
+              <option value="pt-BR-FranciscaNeural">Francisca — feminino, amigável</option>
+              <option value="pt-BR-ThalitaNeural">Thalita — feminino, jovem e natural</option>
+              <option value="pt-BR-GiovannaNeural">Giovanna — feminino, profissional</option>
+            </select>
+          </div>
+
+          <div class="sf-group">
+            <label class="sf-label">ELEVENLABS API KEY (alternativa)</label>
             <input class="sf-input" id="cfg-elevenlabs" type="password" placeholder="sk_…"/>
-            <p class="sf-hint">Voz ultra-realista em português. Plano gratuito: 10.000 caracteres/mês. Crie conta em elevenlabs.io</p>
+            <p class="sf-hint">Usado apenas se Azure não estiver configurado. Grátis: 10.000 chars/mês — elevenlabs.io</p>
           </div>
 
           <div class="sf-group">

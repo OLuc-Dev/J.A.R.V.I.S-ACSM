@@ -598,10 +598,16 @@ async function loadSettings() {
   if (cfg.apiKey) el('cfg-key').value = '';
   el('cfg-groq')?.setAttribute('placeholder', cfg.groqKey ? '••••••••' : 'gsk_…');
   if (cfg.groqKey) el('cfg-groq').value = '';
+  /* Azure */
+  el('cfg-azure-key')?.setAttribute('placeholder', cfg.azureKey ? '••••••••' : 'cole sua chave aqui…');
+  if (cfg.azureKey) el('cfg-azure-key').value = '';
+  if (el('cfg-azure-region') && cfg.azureRegion) el('cfg-azure-region').value = cfg.azureRegion;
+  if (el('cfg-azure-voice')  && cfg.azureVoice)  el('cfg-azure-voice').value  = cfg.azureVoice;
+  /* ElevenLabs */
   el('cfg-elevenlabs')?.setAttribute('placeholder', cfg.elevenlabsKey ? '••••••••' : 'sk_…');
   if (cfg.elevenlabsKey) el('cfg-elevenlabs').value = '';
   if (el('cfg-el-voice') && cfg.elevenlabsVoiceId) el('cfg-el-voice').value = cfg.elevenlabsVoiceId;
-  _elEnabled = !!cfg.elevenlabsKey;
+  _elEnabled = !!(cfg.azureKey || cfg.elevenlabsKey);
   el('cfg-name').value         = cfg.userName    || '';
   el('cfg-model').value        = cfg.model       || 'meta-llama/llama-3.1-8b-instruct:free';
   if (el('cfg-model-custom')) el('cfg-model-custom').value = '';
@@ -668,41 +674,43 @@ document.getElementById('btn-browse-vault')?.addEventListener('click', async () 
 
 document.getElementById('btn-save-cfg')?.addEventListener('click', async () => {
   const el = n => document.getElementById(n);
-  const key    = el('cfg-key')?.value?.trim();
-  const groq   = el('cfg-groq')?.value?.trim();
-  const elKey  = el('cfg-elevenlabs')?.value?.trim();
-  const status = document.getElementById('cfg-status');
+  const key       = el('cfg-key')?.value?.trim();
+  const groq      = el('cfg-groq')?.value?.trim();
+  const elKey     = el('cfg-elevenlabs')?.value?.trim();
+  const azureKey  = el('cfg-azure-key')?.value?.trim();
+  const status    = document.getElementById('cfg-status');
 
   const cfg = {
-    userName:            el('cfg-name')?.value?.trim()         || '',
-    model:               el('cfg-model-custom')?.value?.trim() || el('cfg-model')?.value || 'meta-llama/llama-3.1-8b-instruct:free',
-    vaultPath:           el('cfg-vault')?.value?.trim()        || '',
-    journalTime:         el('cfg-journal-time')?.value         || '08:00',
-    wakeHotkey:          el('cfg-hotkey')?.value?.trim()       || 'Alt+Space',
-    startWithWindows:    el('cfg-startup')?.checked            || false,
-    voiceEnabled:        el('cfg-voice')?.checked              || false,
-    voiceURI:            el('cfg-voice-select')?.value         || '',
-    elevenlabsVoiceId:   el('cfg-el-voice')?.value             || 'pNInz6obpgDQGcFmaJgB',
+    userName:          el('cfg-name')?.value?.trim()         || '',
+    model:             el('cfg-model-custom')?.value?.trim() || el('cfg-model')?.value || 'meta-llama/llama-3.1-8b-instruct:free',
+    vaultPath:         el('cfg-vault')?.value?.trim()        || '',
+    journalTime:       el('cfg-journal-time')?.value         || '08:00',
+    wakeHotkey:        el('cfg-hotkey')?.value?.trim()       || 'Alt+Space',
+    startWithWindows:  el('cfg-startup')?.checked            || false,
+    voiceEnabled:      el('cfg-voice')?.checked              || false,
+    voiceURI:          el('cfg-voice-select')?.value         || '',
+    azureRegion:       el('cfg-azure-region')?.value         || 'brazilsouth',
+    azureVoice:        el('cfg-azure-voice')?.value          || 'pt-BR-AntonioNeural',
+    elevenlabsVoiceId: el('cfg-el-voice')?.value             || 'pNInz6obpgDQGcFmaJgB',
   };
 
-  if (key)   cfg.apiKey        = key;
-  if (groq)  cfg.groqKey       = groq;
-  if (elKey) cfg.elevenlabsKey = elKey;
+  if (key)      cfg.apiKey        = key;
+  if (groq)     cfg.groqKey       = groq;
+  if (azureKey) cfg.azureKey      = azureKey;
+  if (elKey)    cfg.elevenlabsKey = elKey;
 
   await j.setConfig(cfg);
 
-  /* apply voice settings live */
   voiceEnabled  = cfg.voiceEnabled;
   selectedVoice = cfg.voiceURI;
 
-  /* ElevenLabs: se a chave foi informada, ativa a voz automaticamente */
-  if (elKey) {
-    _elEnabled = true;
+  /* Se qualquer chave de voz foi inserida, ativa automaticamente */
+  if (azureKey || elKey) {
+    _elEnabled   = true;
     voiceEnabled = true;
     el('cfg-voice').checked = true;
   }
 
-  /* Testa a voz ao salvar se ElevenLabs ou voz do sistema estiver ativa */
   if (_elEnabled || voiceEnabled) speak('Olá! Minha voz está funcionando.');
 
   if (status) {
@@ -763,7 +771,7 @@ function greeting(name) {
     const cfg = await j.getConfig();
     voiceEnabled  = !!cfg.voiceEnabled;
     selectedVoice = cfg.voiceURI || '';
-    _elEnabled    = !!cfg.elevenlabsKey;
+    _elEnabled    = !!(cfg.azureKey || cfg.elevenlabsKey);
     if (!cfg.apiKey) {
       addMsg('jarvis', 'Olá. Para eu pensar de verdade com você, configure sua API key do OpenRouter em Configurações. Estarei aqui.');
     } else {

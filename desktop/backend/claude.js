@@ -15,6 +15,9 @@ const DEFAULTS = {
   briefingTime: '08:00',
   elevenlabsKey: '',
   elevenlabsVoiceId: 'pNInz6obpgDQGcFmaJgB',
+  azureKey: '',
+  azureRegion: 'brazilsouth',
+  azureVoice: 'pt-BR-AntonioNeural',
 };
 
 const JOURNAL_PROMPTS = [
