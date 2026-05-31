@@ -335,14 +335,24 @@ async function _elPlayNext() {
         _elBusy  = false;
         _elPlayNext();
       };
-      _elAudio.play().catch(() => { _elBusy = false; _elPlayNext(); });
+      _elAudio.play().catch(err => {
+        _elBusy = false;
+        addMsg('jarvis', `Voz: erro ao reproduzir áudio — ${err.message}`);
+        _elPlayNext();
+      });
+    } else if (result && result.error) {
+      _elBusy = false;
+      _elEnabled = false; // desativa para não ficar tentando sem parar
+      addMsg('jarvis', `Voz ElevenLabs: ${result.error}. Verifique sua chave em Configurações.`);
+      setStatus('ONLINE');
     } else {
       _elBusy = false;
       if (_elQueue.length) _elPlayNext();
       else if (!listening) setStatus('ONLINE');
     }
-  } catch {
+  } catch (err) {
     _elBusy = false;
+    addMsg('jarvis', `Voz: erro inesperado — ${err.message}`);
     if (_elQueue.length) _elPlayNext();
     else if (!listening) setStatus('ONLINE');
   }
@@ -684,9 +694,16 @@ document.getElementById('btn-save-cfg')?.addEventListener('click', async () => {
   /* apply voice settings live */
   voiceEnabled  = cfg.voiceEnabled;
   selectedVoice = cfg.voiceURI;
-  if (elKey) _elEnabled = true;
-  const testPhrase = _elEnabled ? 'Voz humana ativada.' : 'Voz ativada.';
-  if (voiceEnabled) speak(testPhrase);
+
+  /* ElevenLabs: se a chave foi informada, ativa a voz automaticamente */
+  if (elKey) {
+    _elEnabled = true;
+    voiceEnabled = true;
+    el('cfg-voice').checked = true;
+  }
+
+  /* Testa a voz ao salvar se ElevenLabs ou voz do sistema estiver ativa */
+  if (_elEnabled || voiceEnabled) speak('Olá! Minha voz está funcionando.');
 
   if (status) {
     status.textContent = '✓ Configuração salva.';
