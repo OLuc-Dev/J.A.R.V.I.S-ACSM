@@ -14,7 +14,7 @@ const DEFAULTS = {
   wakeHotkey: 'Alt+Space',
   briefingTime: '08:00',
   elevenlabsKey: '',
-  elevenlabsVoiceId: 'onwK4e9ZLuTAKqWW03F9',
+  elevenlabsVoiceId: 'pNInz6obpgDQGcFmaJgB',
 };
 
 const JOURNAL_PROMPTS = [

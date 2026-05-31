@@ -682,7 +682,7 @@ document.getElementById('btn-save-cfg')?.addEventListener('click', async () => {
     startWithWindows:    el('cfg-startup')?.checked            || false,
     voiceEnabled:        el('cfg-voice')?.checked              || false,
     voiceURI:            el('cfg-voice-select')?.value         || '',
-    elevenlabsVoiceId:   el('cfg-el-voice')?.value             || 'onwK4e9ZLuTAKqWW03F9',
+    elevenlabsVoiceId:   el('cfg-el-voice')?.value             || 'pNInz6obpgDQGcFmaJgB',
   };
 
   if (key)   cfg.apiKey        = key;
